@@ -1,0 +1,25 @@
+[project]
+name = "mediabox"
+version = "0.1.0"
+description = "A browsable catalog for the video files you already own, and the pipeline that keeps it honest"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = ["Flask>=3.0", "Pillow>=10.1"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff"]
+e2e = ["playwright"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "extras/youtube/tests"]
+addopts = "-ra"
+
+[tool.ruff]
+target-version = "py311"
+extend-exclude = ["demo_data", "site"]
+
+[tool.ruff.lint]
+# Syntax errors and undefined names: the checks that catch real breakage. The code base
+# carries a lot of long, comment-heavy history, so style rules are deliberately not enforced.
+select = ["E9", "F63", "F7", "F82"]

@@ -1,0 +1,71 @@
+/* Loading overlay card, spinner and effects (2026-10). Injected into the page by
+   render_engine.py; the overlay itself (#boot-overlay) is shared with the
+   remote's idle/rotate screens, so everything here is scoped to #boot-card. */
+#boot-card {
+  position: relative; overflow: hidden;
+  width: min(420px, calc(100vw - 32px)); max-width: none;
+  padding: 24px 26px 30px;
+}
+#boot-card h2 { font-size: 21px; line-height: 1.25; margin: 6px 0 4px; }
+.boot-fx { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.boot-overlay-stack { position: relative; }
+.boot-spin { width: 68px; height: 68px; margin: 0 auto 8px; }
+.boot-spin svg { width: 100%; height: 100%; overflow: visible; }
+.boot-step {
+  font: 500 13px ui-monospace, "Cascadia Mono", Consolas, monospace;
+  letter-spacing: 0.1em; text-transform: uppercase; color: rgba(234,234,242,0.88);
+}
+.boot-step:empty { display: none; }
+.boot-detail { color: #6cf; font-size: 14px; font-weight: 500; min-height: 21px; margin: 0 0 4px; }
+#boot-card .boot-what { font-size: 13px; color: rgba(234,234,242,0.8); max-width: 36ch; margin: 0 auto; min-height: 2.6em; }
+.boot-stuck { margin: 10px 0 0; font-size: 12.5px; color: #f2b134; }
+.boot-stuck a { color: #ffd88a; text-decoration: underline; cursor: pointer; }
+.boot-hair { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: rgba(255,255,255,0.07); }
+.boot-hair i {
+  display: block; height: 100%; width: 0; transition: width 0.6s ease;
+  background: linear-gradient(90deg, #6cf, #a78bfa, #f2b134);
+  box-shadow: 0 0 7px rgba(102,204,255,0.55);
+}
+
+/* Constellation spinner: a spark travels a star pattern; each leg draws in its
+   own color and each point gives a small burst of its color as the spark lands. */
+@keyframes bo-seg { 0% { stroke-dashoffset: 1; opacity: 0.95; } 20% { stroke-dashoffset: 0; opacity: 0.95; } 80% { stroke-dashoffset: 0; opacity: 0.55; } 100% { stroke-dashoffset: 0; opacity: 0; } }
+@keyframes bo-ring { 0% { opacity: 0; transform: scale(0.2); } 2% { opacity: 1; } 22% { opacity: 0; transform: scale(1.8); } 100% { opacity: 0; transform: scale(1.8); } }
+@keyframes bo-flash { 0% { opacity: 0; transform: scale(0); } 3% { opacity: 1; transform: scale(1.6); } 16% { opacity: 0; transform: scale(0.4); } 100% { opacity: 0; transform: scale(0); } }
+@keyframes bo-node { 0% { opacity: 1; transform: scale(1.8); } 20% { opacity: 0.85; transform: scale(1); } 100% { opacity: 0.4; transform: scale(1); } }
+@keyframes bo-travel { from { offset-distance: 0%; } to { offset-distance: 100%; } }
+@keyframes bo-tw { 0%, 100% { opacity: 0.12; transform: scale(0.35); } 50% { opacity: 1; transform: scale(1); } }
+.bo-seg { stroke-dasharray: 1; stroke-dashoffset: 1; stroke-width: 1.6; stroke-linecap: round; opacity: 0; animation: bo-seg 3.6s linear infinite; }
+.bo-ring { transform-box: fill-box; transform-origin: center; opacity: 0; animation: bo-ring 3.6s ease-out infinite; }
+.bo-flash { transform-box: fill-box; transform-origin: center; opacity: 0; animation: bo-flash 3.6s ease-out infinite; }
+.bo-node { transform-box: fill-box; transform-origin: center; opacity: 0.4; animation: bo-node 3.6s ease-out infinite; }
+.bo-trav { offset-rotate: 0deg; animation: bo-travel 3.6s linear infinite; }
+.bo-tw { transform-box: fill-box; transform-origin: center; animation: bo-tw 2.4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  #boot-overlay .boot-spin * { animation: none !important; }
+  #boot-overlay .bo-seg { stroke-dashoffset: 0; opacity: 0.6; }
+  .boot-hair i { transition: none; }
+}
+
+/* Fade the overlay in and out (instead of a hard cut). Only when shown/hidden by the page's own
+   functions; the first paint of a reload shows it instantly so the handoff has no blink. */
+@keyframes bo-fade-in { from { opacity: 0; } to { opacity: 1; } }
+.boot-overlay.bo-in { animation: bo-fade-in 0.4s ease both; }
+.boot-overlay.bo-out { opacity: 0; transition: opacity 0.35s ease; }
+
+/* Phone remote: "Can't reach the app" card, and a margin on the rotate prompt so its card no
+   longer touches both screen edges. */
+html:not(.remote-only) #remote-offline { display: none !important; }
+#remote-offline { z-index: 10001; }
+.ro-dot {
+  width: 12px; height: 12px; border-radius: 50%; background: #f2b134; margin: 0 auto 12px;
+  box-shadow: 0 0 10px rgba(242,177,52,0.6); animation: ro-pulse 1.4s ease-in-out infinite;
+}
+@keyframes ro-pulse { 0%, 100% { opacity: 0.45; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.15); } }
+.ro-more { margin-top: 10px; color: #ffd88a; }
+#remote-rotate-prompt .boot-overlay-inner { width: min(460px, calc(100vw - 32px)); box-sizing: border-box; }
+@media (prefers-reduced-motion: reduce) {
+  .boot-overlay.bo-in { animation: none; }
+  .boot-overlay.bo-out { transition: none; }
+  .ro-dot { animation: none; }
+}

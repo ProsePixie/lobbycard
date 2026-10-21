@@ -1,0 +1,20 @@
+{
+  "name": "Coastline",
+  "theme": {
+    "bg": "#0e1a1c",
+    "panel": "#142528",
+    "text": "#e3f1ef",
+    "text_dim": "#8fb3ae",
+    "border": "#234146",
+    "accent": "#3cc4b4",
+    "accent_soft": "#103236",
+    "chip_bg": "#183034"
+  },
+  "titles": [
+    { "id": 900013, "type": "Movie", "release": 1, "chrono": 2 },
+    { "id": 900012, "type": "Movie", "release": 2, "chrono": 3 },
+    { "id": 900001, "type": "TV",    "release": 3, "chrono": 1 },
+    { "id": 900002, "type": "TV",    "release": 4, "chrono": 5 },
+    { "id": 900011, "type": "TV",    "release": 5, "chrono": 4 }
+  ]
+}

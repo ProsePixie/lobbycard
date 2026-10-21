@@ -1,0 +1,12 @@
+{
+  "_comment": "Franchise mode: a saga or universe in a defined order. 'id' is the TMDB id, 'type' is Movie or TV, 'release' is release order, 'chrono' is story order. Entries for titles you do not own do nothing, so you can list upcoming ones in advance. 'theme' is optional.",
+  "name": "Example Saga",
+  "theme": {
+    "bg": "#1a1024", "panel": "#25173a", "text": "#efe6fa", "text_dim": "#b9a3d6",
+    "border": "#3d2760", "accent": "#b57cff", "accent_soft": "#2f1d4d", "chip_bg": "#2c1b47"
+  },
+  "titles": [
+    { "id": 603, "type": "Movie", "release": 1, "chrono": 1 },
+    { "id": 604, "type": "Movie", "release": 2, "chrono": 2 }
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "app_name": "Entertainment and Talk Over It",
+  "tagline": "What do you want to watch tonight?",
+  "people": ["You", "Partner"],
+  "accent": { "light": "#B5750F", "dark": "#E8A33D" }
+}

@@ -1,0 +1,9 @@
+{
+  "archive_root": "D:/Media",
+  "queue_roots": [
+    { "label": "Incoming", "path": "D:/Downloads/complete" }
+  ],
+  "vlc_path": "",
+  "ffprobe_path": "",
+  "browser_path": ""
+}

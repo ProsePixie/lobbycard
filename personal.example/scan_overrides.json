@@ -1,0 +1,15 @@
+{
+  "_comment": "Per-library fixes for files the scanner cannot place on its own. Copy to <data dir>/scan_overrides.json.",
+  "episode_number_overrides": {
+    "some show": [
+      ["the christmas special", 0, 1],
+      ["the anniversary special", 0, 2]
+    ]
+  },
+  "directory_leaf_overrides": {
+    "Season1": [
+      ["Pilot", "Some Show", "TV", 1, 1, null],
+      ["The Second One", "Some Show", "TV", 1, 2, null]
+    ]
+  }
+}

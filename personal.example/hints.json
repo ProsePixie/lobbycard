@@ -1,0 +1,11 @@
+{
+  "_comment": "Same shape as packs/default/hints.json. Categories are free-form; _labels sets the caption shown above a line.",
+  "_labels": { "house_rules": "House rule" },
+  "house_rules": [
+    "Whoever picks the movie does not get to talk through it.",
+    "No spoilers before the credits."
+  ],
+  "idle": [
+    "Nothing playing. The couch is available."
+  ]
+}

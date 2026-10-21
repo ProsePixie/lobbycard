@@ -1,0 +1,1753 @@
+  /* Orbitron (OFL-licensed, see app/assets/ORBITRON-LICENSE.txt), embedded
+     as base64 so the self-contained page (server, static snapshot, and
+     travel export alike) never depends on a font CDN. Used only for the
+     app-name wordmark - body text stays the system-font stack below. */
+  @font-face {
+    font-family: 'Orbitron';
+    font-style: normal;
+    font-weight: 900;
+    font-display: swap;
+    src: url('data:font/woff2;base64,@@orbitron_b64@@') format('woff2');
+  }
+  :root {
+    --bg: #f5f6f8;
+    --panel: #ffffff;
+    --text: #1c1e21;
+    --text-dim: #6b7280;
+    --border: #e2e4e8;
+    --accent: #B5750F;
+    --accent-soft: #F7EEDC;
+    --tv: #7c5cbf;
+    --tv-soft: #f1ecfa;
+    --movie: #1f8a5f;
+    --movie-soft: #e7f7f0;
+    --other: #b0791a;
+    --other-soft: #fbf1de;
+    --upcoming: #2f6fa8;
+    --upcoming-soft: #e5f1fb;
+    --chip-bg: #eef0f3;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --radius: 10px;
+    --tv-scale: 1.55;
+    --title-fit: @@title_fit@@;
+    /* --tv-scale permanently 1.55 (was toggleable "TV Mode", now the only
+       size) - larger text/spacing throughout, meant for reading the screen
+       from across the room. */
+    /* One dedicated, meaningful color per header action - previously
+       several buttons just borrowed --movie/--tv (the Movie/TV type-badge
+       colors) with no real connection to what the button does. Deliberately
+       NOT reused by html.franchise-mode below, same as --movie/--tv/--other/
+       --upcoming already aren't - a themed reskin shouldn't blur what each
+       action means. */
+    --btn-watchlist: #ca8a04; --btn-watchlist-soft: #fef9c3;
+    --btn-tvmode: #0891b2; --btn-tvmode-soft: #e3f6fa;
+    --btn-refresh: #2563eb; --btn-refresh-soft: #dbeafe;
+    --btn-purge: #dc2626; --btn-purge-soft: #fee2e2;
+    --btn-filelib: #1f8a5f; --btn-filelib-soft: #e7f7f0;
+    --btn-travel: #0d9488; --btn-travel-soft: #ccfbf1;
+    --btn-dashboard: #7c5cbf; --btn-dashboard-soft: #f1ecfa;
+    --btn-missing: #ea580c; --btn-missing-soft: #ffedd5;
+    --btn-admin: #64748b; --btn-admin-soft: #f1f5f9;
+    --btn-howto: #4f46e5; --btn-howto-soft: #e0e7ff;
+    --btn-guide: #0284c7; --btn-guide-soft: #e0f2fe;
+    /* Matches .status-dot.s-airing-soon's own fixed color exactly - that
+       dot isn't theme-aware either, so this button
+       stays the same cyan in light and dark rather than following the
+       usual two-tone --btn-* pattern. */
+    --btn-weekly: #0891b2; --btn-weekly-soft: #e3f6fa;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14161a;
+      --panel: #1d2025;
+      --text: #eceef1;
+      --text-dim: #9aa0aa;
+      --border: #2c3036;
+      --accent: #E8A33D;
+      --accent-soft: #332711;
+      --tv: #b09bec;
+      --tv-soft: #26223a;
+      --movie: #5cd6a4;
+      --movie-soft: #17302a;
+      --other: #e0b25c;
+      --other-soft: #332a18;
+      --upcoming: #6badf0;
+      --upcoming-soft: #1a2c3d;
+      --chip-bg: #262a30;
+      --shadow: 0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3);
+      --btn-watchlist: #eab308; --btn-watchlist-soft: #3d3210;
+      --btn-tvmode: #22d3ee; --btn-tvmode-soft: #163238;
+      --btn-refresh: #60a5fa; --btn-refresh-soft: #1a2c3d;
+      --btn-purge: #f87171; --btn-purge-soft: #3a1a1a;
+      --btn-filelib: #5cd6a4; --btn-filelib-soft: #17302a;
+      --btn-travel: #2dd4bf; --btn-travel-soft: #103330;
+      --btn-dashboard: #b09bec; --btn-dashboard-soft: #26223a;
+      --btn-missing: #fb923c; --btn-missing-soft: #3a2410;
+      --btn-admin: #94a3b8; --btn-admin-soft: #262a30;
+      --btn-howto: #818cf8; --btn-howto-soft: #221f3d;
+      --btn-guide: #38bdf8; --btn-guide-soft: #10283a;
+      --btn-weekly: #0891b2; --btn-weekly-soft: #163238;
+    }
+  }
+  /* The pack can re-point the accent colour (see branding.accent_css()). */
+  @@accent_css@@
+  /* Franchise mode reskin - the pack's own palette, one look regardless of
+     light/dark system preference (higher specificity than :root wins either
+     way, deliberately - a themed mode isn't meant to also respect light
+     mode). Deliberately does NOT redefine --movie/--tv/--other/--upcoming
+     (media-type and urgency badge colors - reskinning those too would blur
+     real distinctions they carry) or touch the status-dot colors at all
+     (hardcoded hex in .status-dot, never tied to --accent to begin with). */
+  @@franchise_theme_css@@
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: calc(14px * var(--tv-scale));
+    line-height: 1.4;
+  }
+  .wrap { max-width: none; margin: 0 auto; padding: 24px 20px 60px; }
+  header {
+    display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 10px;
+    position: relative; z-index: 1; padding: 0 22px 34px;
+  }
+  .app-hero {
+    position: relative;
+    border-radius: var(--radius);
+    /* NOT overflow:hidden - border-radius already clips the background
+       image/gradient on its own (no child content needs clipping here),
+       and hidden would also clip the hub-menu popovers that hang below
+       the button row past the box's own bottom edge. */
+    margin-bottom: 14px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    /* Box height tracks the banner image's own aspect ratio (16:9, the
+       source is 1600x900) instead of an arbitrary min-height, so
+       background-size: cover fills it exactly with zero cropping and
+       zero letterboxing - the image's real height IS the box height.
+       header (the button row) sits at the bottom via flex space-between. */
+    aspect-ratio: 1600 / 368;
+    background-image: url('@@banner_uri@@');
+    background-size: cover;
+    background-position: 50% var(--banner-y, 50%);
+    background-repeat: no-repeat;
+  }
+  /* The franchise banner is cropped so its own aspect ratio (1900x559)
+     matches this box exactly, so background-size:cover fills it with zero
+     cropping and zero letterboxing. background-color is only the
+     flash-of-unstyled-background fallback before the image decodes. */
+  html.franchise-mode .app-hero {
+    background-image: url('@@franchise_banner_uri@@');
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-color: var(--bg);
+    aspect-ratio: 1900 / 559;
+    box-shadow: inset 0 0 0 2px var(--accent), 0 0 50px var(--accent-soft);
+  }
+  /* Fades the banner into the page background at the left/right edges
+     instead of ending in a hard vertical line - a second gradient layered
+     on top of the existing vertical dark fade below. */
+  html.franchise-mode .app-hero::after {
+    background:
+      linear-gradient(180deg, rgba(8,6,18,0.3) 0%, rgba(8,6,18,0.55) 45%, rgba(8,6,18,0.85) 78%, var(--bg) 100%),
+      linear-gradient(90deg, var(--bg) 0%, transparent 18%, transparent 82%, var(--bg) 100%);
+  }
+  html.franchise-mode .app-title {
+    font-size: calc(58px * var(--tv-scale) * var(--title-fit, 1));
+    letter-spacing: 0.18em;
+    text-shadow: 0 0 10px #fff, 0 0 30px var(--accent), 0 4px 14px rgba(0,0,0,0.85);
+  }
+  html.franchise-mode .app-tagline {
+    color: var(--text);
+    font-weight: 700;
+    font-size: calc(15px * var(--tv-scale));
+    text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+  }
+  .app-hero::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(8,6,18,0.3) 0%, rgba(8,6,18,0.55) 45%, rgba(8,6,18,0.85) 78%, var(--bg) 100%);
+  }
+  .app-hero-inner { position: relative; z-index: 1; padding: 26px 22px 6px; max-width: calc(100% - 190px); }
+  /* Plain browser reload of the page you're already looking at - NOT the
+     backend pipeline (that's "Refresh library" in the header-actions row
+     below). Meant for after a video finishes and the page's own state
+     needs a clean re-sync (e.g. a watched-status stage transition) without
+     waiting on or triggering a real library rescan. Deliberately placed
+     apart from the other header buttons and labeled with text, not just an
+     icon, so it reads unambiguously as a different kind of action. */
+  .refresh-page-btn {
+    position: absolute; top: 14px; right: 16px; z-index: 2;
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 13px; border-radius: 999px;
+    background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.3);
+    color: #fff; font-size: calc(12px * var(--tv-scale)); font-weight: 600;
+    cursor: pointer; white-space: nowrap;
+  }
+  .refresh-page-btn:hover { background: rgba(0,0,0,0.72); border-color: rgba(255,255,255,0.5); }
+  .refresh-page-btn svg { width: 14px; height: 14px; flex: 0 0 auto; }
+  .app-title {
+    font-family: 'Orbitron', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-weight: 900;
+    font-size: calc(36px * var(--tv-scale) * var(--title-fit, 1));
+    letter-spacing: 0.14em;
+    color: #fff;
+    text-shadow: 0 0 20px rgba(232,163,61,0.55), 0 2px 10px rgba(0,0,0,0.75);
+    margin: 0;
+    line-height: 1;
+  }
+  .app-tagline {
+    color: rgba(255,255,255,0.78);
+    font-size: calc(12.5px * var(--tv-scale));
+    letter-spacing: 0.04em;
+    margin-top: 6px;
+  }
+  .header-actions { display: flex; gap: 8px; align-items: center; }
+  .header-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 8px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--panel); color: var(--text); font-size: calc(13px * var(--tv-scale)); cursor: pointer;
+  }
+  .header-btn:hover { background: var(--accent-soft); }
+  .header-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .header-btn.active { background: var(--accent); border-color: var(--accent); color: white; }
+  .header-btn .icon-chip {
+    width: 26px; height: 26px; border-radius: 6px; flex: 0 0 auto;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--accent-soft);
+  }
+  .header-btn .icon-chip svg { width: 16px; height: 16px; display: block; color: var(--accent); }
+  .header-btn.active .icon-chip { background: rgba(255,255,255,0.22); }
+  .header-btn.active .icon-chip svg { color: #fff; }
+  /* One dedicated color per action (see the --btn-* variables above) -
+     each button keeps its own color even when .active/is-busy, rather than
+     flashing to the generic amber --accent like a plain toggle would. */
+  #top10-btn .icon-chip { width: 52px; height: 52px; border-radius: 10px; background: var(--btn-watchlist-soft); }
+  #top10-btn .icon-chip svg { width: 32px; height: 32px; color: var(--btn-watchlist); }
+  #top10-btn.active { background: var(--btn-watchlist); border-color: var(--btn-watchlist); }
+  #top10-btn.active .icon-chip { background: rgba(255,255,255,0.22); }
+  /* Hub buttons (File Management / Admin / Help) - one header-btn that
+     opens a small popover menu instead of one button per underlying
+     feature; each menu item is the SAME id/onclick as the button it
+     replaced, just relocated, so none of that feature's own JS
+     (busy-state, toasts, active-class) needed to change. */
+  .hub-wrap { position: relative; display: inline-flex; }
+  .hub-menu {
+    position: absolute; top: calc(100% + 10px); right: 0; z-index: 30;
+    background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
+    box-shadow: 0 14px 40px rgba(0,0,0,0.5); min-width: 320px; padding: 10px; display: none;
+  }
+  .hub-menu.open { display: block; }
+  .hub-menu-title {
+    font-size: calc(13px * var(--tv-scale)); text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--text-dim); padding: 6px 12px 8px; font-weight: 700;
+  }
+  .hub-menu-item {
+    display: flex; align-items: center; gap: 14px; width: 100%;
+    padding: 14px 14px; border-radius: 10px; border: none; background: transparent;
+    color: var(--text); font-size: calc(16px * var(--tv-scale)); font-weight: 600; text-align: left; cursor: pointer;
+    white-space: nowrap; margin-bottom: 2px;
+  }
+  .hub-menu-item:last-child { margin-bottom: 0; }
+  .hub-menu-item:hover { background: var(--accent-soft); }
+  .hub-menu-item .icon-chip {
+    width: 36px; height: 36px; border-radius: 9px; flex: 0 0 auto;
+    display: inline-flex; align-items: center; justify-content: center; background: var(--accent-soft);
+  }
+  .hub-menu-item .icon-chip svg { width: 20px; height: 20px; color: var(--accent); }
+  .hub-trigger.active { background: var(--accent); border-color: var(--accent); color: white; }
+  .hub-trigger.active .icon-chip { background: rgba(255,255,255,0.22); }
+  .hub-trigger.active .icon-chip svg { color: #fff; }
+  #franchise-mode-toggle .icon-chip { width: 44px; height: 44px; border-radius: 10px; background: var(--accent-soft); padding: 3px; }
+  #franchise-mode-toggle .icon-chip img { width: 100%; height: 100%; object-fit: contain; display: block; }
+  #franchise-mode-toggle.active { background: var(--accent); border-color: var(--accent); }
+  #youtube-mode-toggle .icon-chip { width: 44px; height: 44px; border-radius: 10px; background: var(--btn-purge-soft); }
+  #youtube-mode-toggle .icon-chip svg { width: 28px; height: 28px; color: var(--btn-purge); }
+  #youtube-mode-toggle.active { background: var(--btn-purge); border-color: var(--btn-purge); }
+  #youtube-mode-toggle.active .icon-chip { background: rgba(255,255,255,0.22); }
+  /* YouTube Mode: the block replaces the whole library view (front panels,
+     filter bar, grid). Same mechanism as Franchise Mode - a class on <html>.
+     !important because renderFrontPanels()/franchise code set inline display on
+     .front-panels. #youtube-block ships with the `hidden` attribute; this
+     rule wins once the class is on. */
+  html.youtube-mode .front-panels,
+  html.youtube-mode #franchise-whats-next-panel,
+  html.youtube-mode .controls,
+  html.youtube-mode #result-count,
+  html.youtube-mode #list,
+  html.youtube-mode #grid,
+  html.youtube-mode #empty-state,
+  html.youtube-mode #status-legend { display: none !important; }
+  html.youtube-mode #youtube-block { display: block; }
+  /* Own banner while YouTube Mode is on - the watched/in-progress/ended/etc
+     status-dot legend (#status-legend, hidden above) describes the library
+     grid, which isn't showing either, so it stayed hidden alongside it. */
+  html.youtube-mode .app-hero {
+    background-image: url('@@youtube_banner_uri@@');
+    background-position: center center;
+  }
+  #weekly-tv-toggle .icon-chip { width: 44px; height: 44px; border-radius: 10px; background: var(--btn-weekly-soft); }
+  #weekly-tv-toggle .icon-chip svg { width: 26px; height: 26px; color: var(--btn-weekly); }
+  #weekly-tv-toggle.active { background: var(--btn-weekly); border-color: var(--btn-weekly); }
+  #refresh-btn .icon-chip { background: var(--btn-refresh-soft); }
+  #refresh-btn .icon-chip svg { color: var(--btn-refresh); }
+  #purge-btn .icon-chip { background: var(--btn-purge-soft); }
+  #purge-btn .icon-chip svg { color: var(--btn-purge); }
+  #purge-btn.active { background: var(--btn-purge); border-color: var(--btn-purge); color: white; }
+  #purge-btn.active:hover { filter: brightness(0.92); }
+  #autofile-btn .icon-chip { background: var(--btn-filelib-soft); }
+  #autofile-btn .icon-chip svg { color: var(--btn-filelib); }
+  #autofile-btn.active { background: var(--btn-filelib); border-color: var(--btn-filelib); color: white; }
+  #autofile-btn.active:hover { filter: brightness(0.92); }
+  #travel-mode-btn .icon-chip { background: var(--btn-travel-soft); }
+  #travel-mode-btn .icon-chip svg { color: var(--btn-travel); }
+  #travel-mode-btn.active { background: var(--btn-travel); border-color: var(--btn-travel); }
+  #dashboard-toggle .icon-chip { background: var(--btn-dashboard-soft); }
+  #dashboard-toggle .icon-chip svg { color: var(--btn-dashboard); }
+  #dashboard-toggle.active { background: var(--btn-dashboard); border-color: var(--btn-dashboard); }
+  #missing-episodes-btn .icon-chip { background: var(--btn-missing-soft); }
+  #missing-episodes-btn .icon-chip svg { color: var(--btn-missing); }
+  #library-history-btn .icon-chip { background: var(--btn-dashboard-soft); }
+  #library-history-btn .icon-chip svg { color: var(--btn-dashboard); }
+
+  /* Library History modal */
+  .lh-timeline { font-size: 13px; }
+  .lh-day {
+    font-weight: 800; font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--text-dim); margin: 14px 0 6px; padding-bottom: 3px; border-bottom: 1px solid var(--border);
+  }
+  .lh-day:first-child { margin-top: 0; }
+  .lh-row { display: flex; align-items: baseline; gap: 9px; padding: 4px 0; }
+  .lh-badge {
+    flex: 0 0 auto; width: 18px; height: 18px; border-radius: 5px; font-weight: 900;
+    font-size: 12px; line-height: 18px; text-align: center;
+  }
+  .lh-badge.lh-add { background: var(--btn-filelib-soft); color: var(--btn-filelib); }
+  .lh-badge.lh-remove { background: var(--btn-purge-soft); color: var(--btn-purge); }
+  .lh-badge.lh-return { background: var(--btn-guide-soft); color: var(--btn-guide); }
+  .lh-badge.lh-info { background: var(--chip-bg); color: var(--text-dim); }
+  .lh-badge.lh-warn { background: var(--btn-missing-soft); color: var(--btn-missing); }
+  .lh-detail { flex: 1; min-width: 0; }
+  .lh-time { flex: 0 0 auto; font-size: 11px; color: var(--text-dim); font-variant-numeric: tabular-nums; }
+  .lh-type { font-size: 10.5px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .04em; }
+  .lh-eps { font-size: 11.5px; color: var(--text-dim); }
+  .lh-reason { font-size: 10.5px; padding: 1px 6px; border-radius: 999px; margin-left: 4px; white-space: nowrap; }
+  .lh-reason-purged_after_watch { background: var(--btn-filelib-soft); color: var(--btn-filelib); }
+  .lh-reason-disappeared { background: var(--btn-missing-soft); color: var(--btn-missing); }
+  .lh-section {
+    font-weight: 800; font-size: 12.5px; margin: 22px 0 8px; padding-top: 12px;
+    border-top: 2px solid var(--border); color: var(--text);
+  }
+  .lh-row.lh-tomb { opacity: .85; }
+  #admin-btn .icon-chip { background: var(--btn-admin-soft); }
+  #admin-btn .icon-chip svg { color: var(--btn-admin); }
+  #help-btn .icon-chip { background: var(--btn-howto-soft); }
+  #help-btn .icon-chip svg { color: var(--btn-howto); }
+  #guide-btn .icon-chip { background: var(--btn-guide-soft); }
+  #guide-btn .icon-chip svg { color: var(--btn-guide); }
+  @keyframes header-btn-spin { to { transform: rotate(360deg); } }
+  .header-btn.is-busy .icon-chip svg { animation: header-btn-spin 1s linear infinite; }
+  .sub { color: var(--text-dim); font-size: calc(13px * var(--tv-scale)); margin-bottom: 16px; }
+
+  .stat-group-label {
+    font-size: calc(11.5px * var(--tv-scale)); color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;
+    margin: 0 0 8px;
+  }
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .stat {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    box-shadow: var(--shadow);
+    position: relative;
+  }
+  .stat .n { font-size: calc(22px * var(--tv-scale)); font-weight: 700; }
+  .stat .l { color: var(--text-dim); font-size: calc(12px * var(--tv-scale)); margin-top: 2px; }
+  /* Each stat card's accent ties back to the same color as the header
+     button for that action (see the --btn-* variables) - Wasted Space and
+     Ready to Purge both read as "red" (things to get rid of), Ready to
+     file/Ready to Auto-File both read as "green" (things joining the real
+     archive), Missing Episodes gets its own orange, matching its header
+     button. */
+  .stat.stat-dup { border-left: 3px solid var(--btn-purge); }
+  .stat.stat-dup .n { color: var(--btn-purge); }
+  .stat.stat-missing { border-left: 3px solid var(--btn-missing); }
+  .stat.stat-missing .n { color: var(--btn-missing); }
+  .stat.stat-purge { border-left: 3px solid var(--btn-purge); }
+  .stat.stat-purge .n { color: var(--btn-purge); }
+  .stat.stat-filelib { border-left: 3px solid var(--btn-filelib); }
+  .stat.stat-filelib .n { color: var(--btn-filelib); }
+  .stat-export-btn {
+    display: block; margin-top: 8px; font-size: calc(11px * var(--tv-scale));
+    padding: 4px 10px; border-radius: 6px; border: 1px solid var(--btn-purge);
+    background: none; color: var(--btn-purge); cursor: pointer;
+  }
+  .stat-export-btn:hover { background: var(--btn-purge-soft); }
+
+  .controls {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  /* Three deliberate rows (2026-08-23, at the user's request - the old
+     single flex-wrap row crammed everything onto one line and wrapped
+     wherever it happened to run out of room, not where it made sense):
+     find/view row, then sort/filter dropdowns, then the icon-only toggle
+     buttons, each its own row regardless of window width. */
+  .controls-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .controls-row-icons { gap: 12px; }
+  #search {
+    flex: 0 1 200px;
+    padding: 9px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    font-size: calc(14px * var(--tv-scale));
+  }
+  select {
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    font-size: calc(13px * var(--tv-scale));
+  }
+  .type-chip {
+    padding: 7px 13px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--chip-bg);
+    color: var(--text-dim);
+    font-size: calc(13px * var(--tv-scale));
+    cursor: pointer;
+    user-select: none;
+  }
+  .type-chip.active { background: var(--accent); border-color: var(--accent); color: white; }
+  /* Independent on/off toggle chips (Oops, Franchise Mode!, hide-no-interest)
+     - same pill look as .type-chip, but each one toggles its own boolean
+     rather than being part of an exclusive-choice group. */
+  .filter-toggle {
+    padding: 7px 13px; border-radius: 999px; border: 1px solid var(--border);
+    background: var(--chip-bg); color: var(--text-dim); font-size: calc(13px * var(--tv-scale));
+    cursor: pointer; user-select: none; display: inline-flex; align-items: center; gap: 5px;
+  }
+  .filter-toggle.active { background: var(--accent); border-color: var(--accent); color: white; }
+  #runtime-mismatch-filter.active { background: var(--btn-purge); border-color: var(--btn-purge); }
+  #runtime-mismatch-filter.active svg { stroke: #fff; }
+  /* Bigger, more prominent chips for the icon-only row specifically
+     (2026-08-23) - these are the least self-explanatory controls in the
+     whole filter bar (no text labels at all), so they get the most
+     visual weight to compensate. */
+  .controls-row-icons .filter-toggle { padding: 10px 16px; }
+  .controls-row-icons .icon-with-badge { font-size: 22px; }
+  .controls-row-icons .icon-with-badge .badge-letter {
+    width: 16px; height: 16px; line-height: 16px; font-size: 10px; bottom: -5px; right: -7px;
+  }
+  .icon-with-badge { position: relative; display: inline-flex; }
+  .icon-with-badge .badge-letter {
+    position: absolute; bottom: -4px; right: -6px; font-size: 9px; font-weight: 700;
+    background: var(--bg); color: var(--text); border-radius: 50%; width: 13px; height: 13px;
+    line-height: 13px; text-align: center; border: 1px solid var(--border);
+  }
+  .result-count { color: var(--text-dim); font-size: calc(13px * var(--tv-scale)); margin: 4px 0 12px; }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 8px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .card-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 14px;
+    cursor: pointer;
+  }
+  .card-row:hover { background: var(--accent-soft); }
+  .title { font-weight: 600; flex: 1 1 auto; min-width: 160px; }
+  .years { color: var(--text-dim); font-weight: 400; font-size: calc(12px * var(--tv-scale)); margin-left: 6px; }
+  .badge {
+    font-size: calc(9px * var(--tv-scale));
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: inline-block;
+    vertical-align: middle;
+  }
+  .badge.type-TV { background: var(--tv-soft); color: var(--tv); }
+  .badge.type-Movie { background: var(--movie-soft); color: var(--movie); }
+  .badge.type-Other { background: var(--other-soft); color: var(--other); }
+  .badge.genre { background: var(--chip-bg); color: var(--text-dim); }
+  .meta { color: var(--text-dim); font-size: calc(12px * var(--tv-scale)); white-space: nowrap; }
+  .roots { display: flex; gap: 4px; }
+  .root-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    display: inline-block;
+  }
+  .root-dot.r0 { background: #e07a5f; }
+  .root-dot.r1 { background: #2f9e9e; }
+  .root-dot.r2 { background: #b08968; }
+  .root-dot.r3 { background: #ff9900; }
+  .root-dot.r4 { background: #e50914; }  /* Netflix */
+  .root-dot.r5 { background: #00a8e1; }  /* Prime Video */
+  .badge.streaming { background: #e8e0f5; color: #5b3a9e; }
+  .badge.streaming-lapsed { background: #f6d7d7; color: #a12b2b; }
+  html:not([data-theme="light"]) .badge.streaming { background: #2c2440; color: #c9b6f0; }
+  html:not([data-theme="light"]) .badge.streaming-lapsed { background: #3a2222; color: #e79a9a; }
+  /* Card-level watch/lifecycle status dot - a deliberately different
+     palette than root-dot (which stays reserved for per-episode physical
+     file location, still shown inside each expanded show) so the two dot
+     systems never look like they share one color meaning when both are
+     visible in the same expanded card. Sized independently of root-dot
+     too (bigger) - root-dot stays small since it also has to fit the
+     cramped per-episode "Loc." column. */
+  .status-dot { width: 12px; height: 12px; }
+  .status-dot.s-unwatched { background: #d97706; }
+  .status-dot.s-progress { background: #9333ea; }
+  .status-dot.s-active { background: #2563eb; }
+  .status-dot.s-ended { background: #64748b; }
+  .status-dot.s-watched { background: #16a34a; }
+  .status-dot.s-airing-soon { background: #0891b2; }
+  .chevron { color: var(--text-dim); font-size: calc(11px * var(--tv-scale)); transition: transform 0.15s; }
+  .card.expanded .chevron { transform: rotate(90deg); }
+
+  .entries { display: none; border-top: 1px solid var(--border); }
+  .card.expanded .entries { display: block; }
+  .detail {
+    display: flex;
+    gap: 12px;
+    padding: calc(1em * 0.15) 14px;
+    border-top: 1px solid var(--border);
+    background: var(--bg);
+  }
+  .detail img.poster {
+    width: 110px;
+    height: 165px;
+    object-fit: cover;
+    border-radius: 8px;
+    flex: 0 0 auto;
+    background: var(--chip-bg);
+  }
+  .detail .overview { font-size: calc(14px * var(--tv-scale)); color: var(--text-dim); flex: 1 1 auto; }
+  .detail .rating { font-size: calc(12px * var(--tv-scale)); color: var(--text); white-space: nowrap; }
+  .entry-header-row {
+    display: grid;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 14px 6px 30px;
+    font-size: calc(10px * var(--tv-scale));
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    background: var(--bg);
+  }
+  .entry-header-row .header-icon { display: flex; justify-content: center; }
+  .entry-row {
+    display: grid;
+    align-items: center;
+    gap: 10px;
+    padding: calc(1em * 0.15) 14px calc(1em * 0.15) 30px;
+    font-size: calc(12.5px * var(--tv-scale));
+    border-top: 1px solid var(--border);
+  }
+  .entry-row.is-watched { opacity: 0.55; }
+  .entry-name { color: var(--text); word-break: break-word; min-width: 0; }
+  .entry-date { color: var(--text-dim); font-size: calc(11px * var(--tv-scale)); }
+  .entry-date.entry-date-fallback { font-style: italic; opacity: 0.8; }
+  .entry-actions { display: flex; gap: 6px; justify-content: flex-end; }
+  .watched-check { display: flex; align-items: center; cursor: pointer; }
+  .watched-check input { cursor: pointer; width: 15px; height: 15px; }
+  .check-label { font-size: calc(11px * var(--tv-scale)); color: var(--text-dim); white-space: nowrap; }
+  .season-group-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px;
+    background: var(--chip-bg);
+    border-top: 1px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+  }
+  .season-chevron {
+    color: var(--text-dim);
+    font-size: calc(10px * var(--tv-scale));
+    transition: transform 0.15s;
+    width: 10px;
+    display: inline-block;
+  }
+  .season-group-header.expanded .season-chevron { transform: rotate(90deg); }
+  .season-group-label { font-weight: 600; font-size: calc(12.5px * var(--tv-scale)); color: var(--text); }
+  .season-group-count { font-size: calc(11px * var(--tv-scale)); color: var(--text-dim); }
+  .season-group-header .watched-check { margin-left: auto; }
+  a.icon-btn, button.icon-btn {
+    width: 36px; height: 36px; flex: 0 0 auto;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--accent);
+    text-decoration: none;
+    cursor: pointer;
+  }
+  a.icon-btn:hover, button.icon-btn:hover { background: var(--accent-soft); }
+  button.icon-btn.copied { color: var(--movie); border-color: var(--movie); }
+  .icon-btn-play {
+    color: var(--movie);
+    border-color: var(--movie);
+    background: var(--movie-soft);
+  }
+  .icon-btn-play:hover { background: var(--movie); color: var(--bg); }
+  button.icon-btn-play:disabled { opacity: 0.5; cursor: progress; }
+  button.icon-btn-cast {
+    color: var(--btn-guide);
+    border-color: var(--btn-guide);
+    background: var(--btn-guide-soft);
+  }
+  button.icon-btn-cast:hover { background: var(--btn-guide); color: var(--bg); }
+  button.icon-btn-cast:disabled { opacity: 0.5; cursor: progress; }
+  a.open-link, button.copy-btn:not(.icon-btn) {
+    font-size: calc(11.5px * var(--tv-scale));
+    padding: 4px 9px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--accent);
+    text-decoration: none;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  a.open-link:hover, button.copy-btn:not(.icon-btn):hover { background: var(--accent-soft); }
+  button.copy-btn:not(.icon-btn).copied { color: var(--movie); border-color: var(--movie); }
+
+  .error-message-box {
+    background: var(--chip-bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px 14px; font-family: ui-monospace, Consolas, "SF Mono", monospace;
+    font-size: calc(12px * var(--tv-scale)); color: var(--text); line-height: 1.5;
+    white-space: pre-wrap; word-break: break-word;
+    max-height: 50vh; overflow-y: auto; margin: 0 0 12px;
+  }
+
+  .empty-state { text-align: center; color: var(--text-dim); padding: 48px 0; }
+  /* Boot overlay - shown when this page loads mid-refresh (see
+     REFRESH_STATUS / the init block near the end of the script). Covers
+     everything so a half-populated grid / not-yet-cached posters are never
+     visible even for a moment; cleared by a full reload once the refresh
+     finishes, same as the header Refresh button's own completion path. */
+  .boot-overlay {
+    position: fixed; inset: 0; z-index: 10000;
+    display: flex; align-items: center; justify-content: center;
+    background-color: #05070c;
+    background-repeat: no-repeat;
+    background-size: cover;
+    /* right-anchored, not centered - see BOOT_OVERLAY_B64's own comment */
+    background-position: right center;
+    background-image:
+      linear-gradient(rgba(5,7,12,0.25), rgba(5,7,12,0.45)),
+      url('@@boot_overlay_uri@@');
+  }
+  .boot-overlay[hidden] { display: none; }
+  /* Groups the loading card + the hint text below it as one centered
+     unit (flex column), instead of the hint being pinned to a viewport
+     corner independent of the card - so it visually reads as "part of
+     the loading screen," the way a game's loading-tip text sits under
+     its own spinner/progress bar, not off in a corner somewhere. */
+  .boot-overlay-stack {
+    display: flex; flex-direction: column; align-items: center; gap: 22px;
+  }
+  .boot-overlay-inner {
+    text-align: center; max-width: 460px; padding: 32px 28px;
+    background: rgba(8,10,18,0.6); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px; backdrop-filter: blur(3px);
+  }
+  .boot-overlay-inner h2 { margin: 0 0 10px; font-weight: 600; color: #eaeaf2; }
+  .boot-overlay-inner p { color: rgba(234,234,242,0.78); font-size: 13.5px; line-height: 1.5; margin: 0; }
+@@boot_overlay_css@@
+  /* Random loading-screen filler text (2026-09-12, sized up + recentered
+     2026-09-12 - the first pass at 12.5px in a viewport corner was "barely
+     noticeable") - centered under the loading card, same as a video game's
+     loading-tip text under its spinner/progress bar. Rotates every 10s -
+     see startLoadingHint()/stopLoadingHint(). Fades between lines instead
+     of hard-cutting so a mid-sentence swap doesn't feel like a glitch. */
+  .boot-hint {
+    max-width: min(560px, calc(100vw - 48px));
+    text-align: center;
+    color: rgba(234,234,242,0.85); font-size: 19px; font-style: italic;
+    line-height: 1.45; transition: opacity 0.4s ease; opacity: 1;
+    text-shadow: 0 1px 6px rgba(0,0,0,0.6);
+  }
+  .boot-hint:empty { display: none; }
+  .boot-hint.fading { opacity: 0; }
+  .boot-hint-label {
+    display: block; font-style: normal; font-weight: 700;
+    letter-spacing: 0.08em; text-transform: uppercase; font-size: 13px;
+    color: rgba(108,204,255,0.85); margin-bottom: 6px;
+  }
+  .empty-state svg { width: 42px; height: 42px; color: var(--accent); margin-bottom: 12px; }
+  .empty-state .h { font-weight: 700; font-size: calc(15px * var(--tv-scale)); color: var(--text); margin-bottom: 4px; }
+  .empty-state .d { font-size: calc(13px * var(--tv-scale)); color: var(--text-dim); }
+  .legend { display: flex; gap: 14px; align-items: center; font-size: calc(12px * var(--tv-scale)); color: var(--text-dim); flex-wrap: wrap; }
+  .status-legend-item {
+    display: inline-flex; align-items: center; gap: 5px;
+    cursor: pointer; padding: 3px 8px; border-radius: 12px;
+    border: 1px solid transparent;
+  }
+  .status-legend-item:hover { background: var(--chip-bg); }
+  .status-legend-item.active { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+
+  .badge.warn { background: #fbe3d0; color: #b5540a; }
+  .badge.missing { background: #fde0e0; color: #c0392b; }
+  .badge.ready { background: #ddf3e4; color: #1f8a5f; }
+  /* A "missing" digital season actually owned on physical disc - same
+     brown as the Physical root-dot (r5) and the missing-chip.on-disc
+     variant, deliberately not red. */
+  .badge.on-disc { background: #ecdfd2; color: #8a5a2e; }
+  @media (prefers-color-scheme: dark) {
+    .badge.warn { background: #3a2917; color: #e0a05c; }
+    .badge.missing { background: #3a1f1f; color: #e08080; }
+    .badge.ready { background: #163625; color: #5cd6a4; }
+    .badge.on-disc { background: #3a2f22; color: #d4a56a; }
+    .admin-refresh-log summary.admin-log-bad { color: #e08080; }
+    .admin-log-highlight.admin-log-bad { color: #e08080; }
+  }
+  .entry-row.is-dup { opacity: 0.65; }
+  /* Flashed briefly on the episode you were streaming when you close the
+     popup and land back here (2026-09-21) - fades on its own, no dismiss
+     needed. */
+  .entry-row.just-returned { animation: entry-row-returned-flash 2s ease-out; }
+  @keyframes entry-row-returned-flash {
+    0% { background: var(--accent-soft); }
+    100% { background: transparent; }
+  }
+  .entry-size { color: var(--text-dim); font-size: calc(11px * var(--tv-scale)); white-space: nowrap; }
+  .missing-block { border-top: 1px solid var(--border); font-size: calc(12.5px * var(--tv-scale)); padding-top: calc(1em * 0.15); padding-bottom: calc(1em * 0.15); }
+  .missing-toggle {
+    display: flex; align-items: center; gap: 7px; cursor: pointer;
+    padding: 10px 14px 10px 30px; user-select: none;
+  }
+  .missing-toggle:hover { background: var(--accent-soft); }
+  .missing-toggle .chev { color: var(--other); font-size: calc(10px * var(--tv-scale)); transition: transform 0.15s; flex: 0 0 auto; }
+  .missing-toggle .chev.open { transform: rotate(90deg); }
+  .missing-toggle .label { color: var(--other); font-weight: 600; }
+  .missing-detail { display: none; padding: 0 14px 10px 30px; }
+  .missing-detail.open { display: block; }
+  .missing-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+  .missing-chip {
+    background: var(--other-soft); color: var(--other);
+    padding: 2px 8px; border-radius: 6px; font-size: calc(11px * var(--tv-scale));
+  }
+  .missing-chip.season-chip { background: #fde0e0; color: #c0392b; }
+  /* A "missing" season that's actually sitting on the shelf physically
+     (covered_physically, see pipeline/enrich_tv_coverage.py) - same
+     brown as the Physical root-dot (r5), deliberately not red, so it
+     never reads as an unresolved gap alongside genuinely missing ones. */
+  .missing-chip.on-disc { background: #ecdfd2; color: #8a5a2e; }
+  @media (prefers-color-scheme: dark) {
+    .missing-chip.season-chip { background: #3a1f1f; color: #e08080; }
+    .missing-chip.on-disc { background: #3a2f22; color: #d4a56a; }
+  }
+
+  .missing-digest-list { display: flex; flex-direction: column; gap: 2px; }
+  .missing-digest-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px; border-radius: 8px; cursor: pointer;
+    font-size: calc(13px * var(--tv-scale));
+  }
+  .missing-digest-row:hover { background: var(--accent-soft); }
+  .missing-digest-title { flex: 1 1 auto; font-weight: 600; }
+  .missing-digest-summary { color: var(--other); font-size: calc(12px * var(--tv-scale)); white-space: nowrap; }
+
+  .franchise-whats-next-panel { margin-bottom: 16px; }
+  .franchise-whats-next-card {
+    display: flex; gap: 18px; align-items: center; cursor: pointer;
+    padding: 12px; border-radius: 10px; border: 1px solid var(--border);
+  }
+  .franchise-whats-next-card:hover { background: var(--accent-soft); }
+  .fwn-poster { width: 110px; aspect-ratio: 2 / 3; border-radius: 8px; object-fit: cover; background: var(--chip-bg); flex: 0 0 auto; }
+  .fwn-label { font-size: calc(11.5px * var(--tv-scale)); color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.04em; }
+  .fwn-title { font-size: calc(20px * var(--tv-scale)); font-weight: 700; margin: 4px 0 4px; }
+  .fwn-sub { font-size: calc(13px * var(--tv-scale)); color: var(--text-dim); }
+  .franchise-timeline { padding: 10px 14px; border-top: 1px solid var(--border); background: var(--bg); }
+  .franchise-timeline-row {
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+    font-size: calc(12.5px * var(--tv-scale)); font-weight: 600;
+  }
+  .franchise-timeline-nav { display: flex; gap: 8px; margin-top: 8px; }
+  .cast-crew { padding: 8px 14px; border-top: 1px solid var(--border); background: var(--bg); }
+  .crew-line { font-size: calc(12px * var(--tv-scale)); color: var(--text); margin-bottom: 6px; }
+  .crew-label { color: var(--text-dim); margin-right: 5px; }
+  /* overflow-x:auto forces overflow-y to clip too, so the 2px hover
+     outline (outline-offset:2px = 4px reach) on a .cast-photo gets sheared
+     off at the row's top/left edge - a few px of padding all round gives
+     it room to render cleanly. */
+  .cast-row { display: flex; gap: 8px; overflow-x: auto; padding: 5px 5px 4px; }
+  .cast-card { flex: 0 0 56px; text-align: center; }
+  .cast-photo {
+    width: 56px; height: 56px; border-radius: 50%; object-fit: cover;
+    background: var(--chip-bg); display: block; margin: 0 auto 4px;
+  }
+  .cast-photo-placeholder {
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-dim); font-size: calc(16px * var(--tv-scale)); font-weight: 600;
+  }
+  /* A locally-cached image that fails to load at request time (offline,
+     TMDB down, a corrupted file) - see onTmdbImageError(). Keeps
+     whichever original class the failed <img> had (cast-photo,
+     poster-img, rec-poster, ...) for identical sizing/shape, this just
+     adds the centered "Feature Offline" label on top of that same box. */
+  .img-offline-fallback {
+    display: flex; align-items: center; justify-content: center;
+    background: var(--chip-bg); color: var(--text-dim); text-align: center;
+    font-size: calc(10px * var(--tv-scale)); line-height: 1.3; padding: 4px;
+  }
+  .cast-photo.img-offline-fallback { font-size: calc(18px * var(--tv-scale)); padding: 0; }
+  .cast-name { font-size: calc(10px * var(--tv-scale)); font-weight: 600; line-height: 1.2; }
+  .cast-character { font-size: calc(9px * var(--tv-scale)); color: var(--text-dim); line-height: 1.2; margin-top: 1px; }
+
+  .recommendations { padding: 8px 14px; border-top: 1px solid var(--border); background: var(--bg); }
+  .recommendations-label { font-size: calc(11.5px * var(--tv-scale)); color: var(--text-dim); margin-bottom: 5px; }
+  .rec-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; }
+  .rec-card { flex: 0 0 76px; text-align: left; text-decoration: none; color: var(--text); cursor: pointer; display: block; }
+  .rec-poster { width: 76px; aspect-ratio: 2 / 3; border-radius: 6px; object-fit: cover; background: var(--chip-bg); display: block; }
+  .rec-title {
+    font-size: calc(10px * var(--tv-scale)); font-weight: 600; margin-top: 4px; line-height: 1.2;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .rec-owned { font-size: calc(9px * var(--tv-scale)); color: var(--movie); margin-top: 2px; }
+  .rec-poster { transition: transform 0.12s ease-out; }
+  .rec-card:hover .rec-poster { transform: scale(1.06); box-shadow: 0 6px 16px rgba(0,0,0,0.35); }
+  .rec-hover-tip {
+    position: fixed; z-index: 90; display: none; pointer-events: none;
+    width: 300px; max-width: 90vw; padding: 10px 12px; border-radius: 8px;
+    background: var(--panel); border: 1px solid var(--border);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.4);
+    animation: modal-in 0.1s ease-out;
+  }
+  .rec-hover-tip.visible { display: block; }
+  .rec-hover-tip-title { font-size: calc(12.5px * var(--tv-scale)); font-weight: 700; margin-bottom: 4px; }
+  .rec-hover-tip-rating { font-size: calc(11px * var(--tv-scale)); color: var(--text-dim); margin-bottom: 6px; }
+  .rec-hover-tip-overview { font-size: calc(11.5px * var(--tv-scale)); color: var(--text-dim); line-height: 1.4; }
+
+  .next-episode-badge {
+    display: inline-flex; align-items: center; gap: 3px;
+    background: var(--upcoming-soft); color: var(--upcoming);
+    padding: 1px 6px; border-radius: 6px; font-size: calc(8px * var(--tv-scale));
+    max-width: 110px;
+  }
+
+  .retention-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: calc(1em * 0.15) 14px; border-top: 1px solid var(--border);
+    font-size: calc(12.5px * var(--tv-scale)); background: var(--bg);
+  }
+  .retention-label { color: var(--text-dim); }
+  .star-btn {
+    padding: 4px 9px; border-radius: 999px; border: 1px solid var(--border);
+    background: var(--bg); color: var(--text-dim); cursor: pointer;
+    font-size: calc(11.5px * var(--tv-scale));
+  }
+  .star-btn.active { background: #fff3cd; border-color: #e0b13a; color: #8a6d1a; }
+  @media (prefers-color-scheme: dark) {
+    .star-btn.active { background: #3a3212; border-color: #8a6d1a; color: #e0c060; }
+  }
+  .star-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .view-toggle { display: flex; gap: 2px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .view-toggle button {
+    padding: 8px 12px; border: none; background: var(--bg); color: var(--text-dim);
+    cursor: pointer; font-size: calc(13px * var(--tv-scale));
+  }
+  .view-toggle button.active { background: var(--accent); color: white; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    gap: 20px;
+  }
+  .poster-card {
+    cursor: pointer;
+    border-radius: var(--radius);
+    overflow: hidden;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .poster-card:hover {
+    transform: scale(1.035);
+    box-shadow: 0 10px 26px rgba(0,0,0,0.25);
+    outline: 2px solid var(--accent);
+    z-index: 2;
+  }
+  .poster-card .poster-img {
+    width: 100%;
+    aspect-ratio: 2 / 3;
+    object-fit: cover;
+    background: var(--chip-bg);
+    display: block;
+  }
+  .poster-card .poster-placeholder {
+    width: 100%;
+    aspect-ratio: 2 / 3;
+    background: var(--chip-bg);
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-size: calc(13px * var(--tv-scale));
+    padding: 10px;
+  }
+  .poster-card .poster-meta { padding: 10px 11px; }
+  .poster-card .poster-title {
+    font-size: calc(14px * var(--tv-scale)); font-weight: 600; line-height: 1.25;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    margin-bottom: 6px;
+  }
+  .poster-card .poster-badges { display: flex; gap: 4px; flex-wrap: wrap; }
+
+  .grid-compact {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 12px;
+  }
+  .grid-compact .poster-meta { padding: 6px 8px; }
+  .grid-compact .poster-title {
+    font-size: calc(12px * var(--tv-scale));
+    margin-bottom: 4px;
+    -webkit-line-clamp: 1;
+  }
+  .grid-compact .poster-badges { gap: 3px; }
+  .grid-compact .badge { font-size: calc(8px * var(--tv-scale)); padding: 2px 6px; max-width: 110px; }
+
+  .watchlist-columns {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 24px;
+  }
+  .watchlist-columns .watchlist-shelf:first-child {
+    border-right: 1px solid var(--border);
+    padding-right: 24px;
+  }
+  @media (max-width: 700px) {
+    .watchlist-columns .watchlist-shelf:first-child { border-right: none; padding-right: 0; }
+  }
+  .watchlist-shelf { margin-bottom: 20px; }
+  .watchlist-shelf-title {
+    font-weight: 700; font-size: calc(14px * var(--tv-scale)); margin-bottom: 10px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .watchlist-shared .watchlist-shelf-title { font-size: calc(15px * var(--tv-scale)); }
+  .watchlist-count {
+    font-weight: 600; font-size: calc(11px * var(--tv-scale)); color: var(--text-dim);
+    background: var(--chip-bg); border-radius: 10px; padding: 1px 8px;
+  }
+  .watchlist-empty { color: var(--text-dim); font-size: calc(12.5px * var(--tv-scale)); }
+  .watchlist-filter { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .watchlist-chip {
+    padding: 7px 13px; border-radius: 999px; border: 1px solid var(--border);
+    background: var(--chip-bg); color: var(--text-dim);
+    font-size: calc(13px * var(--tv-scale)); cursor: pointer; user-select: none;
+  }
+  .watchlist-chip.active { background: var(--accent); border-color: var(--accent); color: white; }
+  .watchlist-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
+  .watchlist-shared .watchlist-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+
+  .admin-tabs { display: flex; gap: 6px; margin-bottom: 16px; border-bottom: 1px solid var(--border); }
+  .admin-tab {
+    background: none; border: none; padding: 8px 14px; cursor: pointer;
+    font-size: calc(13px * var(--tv-scale)); color: var(--text-dim);
+    border-bottom: 2px solid transparent; margin-bottom: -1px;
+  }
+  .admin-tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+  .admin-field { margin-bottom: 14px; }
+  .admin-label { display: block; font-size: calc(11.5px * var(--tv-scale)); color: var(--text-dim); margin-bottom: 4px; }
+  .admin-input, .admin-select {
+    width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--bg); color: var(--text); font-size: calc(13px * var(--tv-scale));
+    box-sizing: border-box;
+  }
+  .admin-row { display: flex; gap: 8px; align-items: flex-end; }
+  .admin-row .admin-field { flex: 1; margin-bottom: 0; }
+  .admin-pick-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 10px; margin-top: 12px; max-height: 340px; overflow-y: auto;
+  }
+  .admin-pick-card {
+    cursor: pointer; border: 2px solid transparent; border-radius: 8px; padding: 4px;
+    text-align: center; background: none;
+  }
+  .admin-pick-card:hover { border-color: var(--accent); }
+  .admin-pick-card img, .admin-pick-card .admin-pick-placeholder {
+    width: 100%; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 6px;
+    background: var(--chip-bg); display: block;
+  }
+  .admin-pick-placeholder { display: flex; align-items: center; justify-content: center; color: var(--text-dim); font-size: calc(10px * var(--tv-scale)); }
+  .admin-pick-title { font-size: calc(10.5px * var(--tv-scale)); margin-top: 4px; line-height: 1.2; }
+  .admin-current { display: flex; gap: 12px; align-items: flex-start; padding: 10px; background: var(--chip-bg); border-radius: 8px; margin-bottom: 14px; }
+  .admin-current img { width: 70px; aspect-ratio: 2/3; object-fit: cover; border-radius: 6px; flex-shrink: 0; }
+  .admin-note { font-size: calc(11.5px * var(--tv-scale)); color: var(--text-dim); margin-top: 4px; }
+  .admin-refresh-log { margin-top: 10px; }
+  .admin-refresh-log details { margin-bottom: 6px; }
+  .admin-refresh-log summary {
+    cursor: pointer; font-size: calc(12px * var(--tv-scale)); color: var(--text);
+    padding: 4px 0;
+  }
+  .admin-refresh-log summary.admin-log-bad { color: #c0392b; font-weight: 600; }
+  .admin-refresh-log .error-message-box { margin: 6px 0 0; }
+  .admin-log-summary { background: var(--chip-bg); border-radius: 8px; padding: 10px 12px; margin-top: 6px; }
+  .admin-log-headline { font-size: calc(13px * var(--tv-scale)); font-weight: 600; margin: 0 0 6px; }
+  .admin-log-highlight { font-size: calc(11.5px * var(--tv-scale)); color: var(--text-dim); padding: 2px 0; }
+  .admin-log-highlight.admin-log-bad { color: #c0392b; font-weight: 600; }
+
+  .help-guide { font-size: calc(13.5px * var(--tv-scale)); line-height: 1.55; }
+  .help-intro { margin: 0 0 16px; color: var(--text-dim); }
+  .help-section { border: 1px solid var(--border); border-radius: 10px; margin-bottom: 10px; overflow: hidden; }
+  .help-section summary {
+    cursor: pointer; padding: 12px 14px; font-weight: 700; font-size: calc(14.5px * var(--tv-scale));
+    background: var(--chip-bg); list-style: none; display: flex; align-items: center; gap: 8px;
+  }
+  .help-section summary::-webkit-details-marker { display: none; }
+  .help-section summary::before { content: '▸'; display: inline-block; transition: transform 0.15s; color: var(--text-dim); }
+  .help-section[open] summary::before { transform: rotate(90deg); }
+  .help-section .help-body { padding: 14px 16px 16px; }
+  .help-body h4 { margin: 14px 0 4px; font-size: calc(13px * var(--tv-scale)); }
+  .help-body h4:first-child { margin-top: 0; }
+  .help-body p { margin: 0 0 10px; }
+  .help-body ul { margin: 0 0 10px; padding-left: 20px; }
+  .help-body li { margin-bottom: 4px; }
+  .help-callout {
+    background: var(--tv-soft); border-left: 3px solid var(--tv); border-radius: 6px;
+    padding: 8px 12px; margin: 10px 0; font-size: calc(12.5px * var(--tv-scale));
+  }
+  .help-guide code { background: var(--chip-bg); padding: 1px 5px; border-radius: 4px; font-size: 0.92em; }
+
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.65);
+    z-index: 50;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 40px 16px;
+    overflow-y: auto;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-box {
+    background: var(--panel);
+    border-radius: var(--radius);
+    max-width: min(1100px, 92vw);
+    width: 100%;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    overflow: hidden;
+    animation: modal-in 0.15s ease-out;
+  }
+  /* Applied only to the admin/utility views opened from the new File
+     Management / Admin / Help hub buttons (Dashboard, Missing Episodes,
+     Library History, Fix/Add a Title, Logs, File Queue, Help Guide) - NOT
+     the everyday show-detail popup, which stays at its current, already-
+     tuned size. zoom (not a font-size rewrite) scales every px value in
+     the subtree at once - text, icons, padding, the works - "allowed to
+     take up room on screen" per the user's own framing, so the modal is
+     also widened to match. */
+  .modal-box-roomy { max-width: min(1300px, 95vw); zoom: 1.2; }
+  @keyframes modal-in {
+    from { opacity: 0; transform: scale(0.97) translateY(8px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .modal-close {
+    position: absolute; top: 8px; right: 10px;
+    background: none; border: none; color: var(--text-dim);
+    font-size: calc(20px * var(--tv-scale)); cursor: pointer; line-height: 1;
+  }
+  .modal-header { position: relative; padding: 14px 40px 14px 14px; border-bottom: 1px solid var(--border); }
+  .modal-header.with-back { padding-left: 92px; }
+  .modal-header .title { font-size: calc(16px * var(--tv-scale)); }
+
+  /* "Back" - only shown when you drilled into this modal FROM another
+     modal view (Watch List -> a show, a show -> a recommendation, an
+     actor popup -> a show). Returns to the previous view without closing
+     and re-navigating. Mirrors .modal-close but on the left. */
+  .modal-back {
+    position: absolute; top: 8px; left: 10px; z-index: 4;
+    background: var(--chip-bg); border: 1px solid var(--border); border-radius: 7px;
+    color: var(--text); font-size: calc(12.5px * var(--tv-scale)); font-weight: 600;
+    padding: 5px 11px 5px 8px; cursor: pointer; line-height: 1;
+  }
+  .modal-back:hover { background: var(--border); }
+  .modal-hero .modal-back {
+    top: 10px; left: 12px; background: rgba(10,10,14,0.5); border-color: transparent;
+    color: #fff; border-radius: 14px; padding: 7px 12px 7px 9px;
+  }
+  .modal-hero .modal-back:hover { background: rgba(10,10,14,0.75); }
+
+  .cast-card.clickable { cursor: pointer; }
+  .cast-card.clickable:hover .cast-photo { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .cast-card.clickable:hover .cast-name { color: var(--accent); }
+  .actor-popup-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.65);
+    z-index: 60;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 16px 16px 16px min(5vw, 56px);
+  }
+  .actor-popup-overlay.open { display: flex; }
+  .actor-popup {
+    position: relative;
+    background: var(--panel);
+    border-radius: var(--radius);
+    max-width: min(560px, 92vw);
+    width: 100%;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    animation: modal-in 0.15s ease-out;
+    padding: 18px;
+  }
+  .actor-popup-top { display: flex; gap: 14px; margin-bottom: 14px; }
+  .actor-popup-photo {
+    width: 84px; height: 84px; border-radius: 50%; object-fit: cover;
+    background: var(--chip-bg); flex-shrink: 0; display: block;
+  }
+  .actor-popup-photo-placeholder {
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-dim); font-size: calc(24px * var(--tv-scale)); font-weight: 600;
+  }
+  .actor-popup-bio {
+    font-size: calc(12px * var(--tv-scale)); color: var(--text-dim); line-height: 1.5; margin-top: 6px;
+  }
+  .actor-popup-bio p { margin: 0 0 6px; }
+  .actor-popup-name { font-size: calc(15px * var(--tv-scale)); font-weight: 700; margin: 4px 26px 4px 0; }
+  .actor-popup-links { display: flex; gap: 8px; margin-bottom: 14px; }
+  .actor-popup-links a {
+    font-size: calc(11.5px * var(--tv-scale)); padding: 4px 10px; border-radius: 6px;
+    border: 1px solid var(--border); background: var(--bg); color: var(--accent);
+    text-decoration: none;
+  }
+  .actor-popup-links a:hover { background: var(--accent-soft); }
+  .actor-popup-label {
+    font-size: calc(11px * var(--tv-scale)); color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px;
+  }
+  .actor-popup-shows { display: flex; flex-direction: column; gap: 2px; }
+  .actor-popup-show {
+    font-size: calc(13px * var(--tv-scale)); padding: 6px 8px; border-radius: 6px; cursor: pointer;
+  }
+  .actor-popup-show:hover { background: var(--accent-soft); }
+  .actor-popup-empty { font-size: calc(12.5px * var(--tv-scale)); color: var(--text-dim); }
+
+  .modal-hero {
+    position: relative;
+    height: 230px;
+    background-size: cover;
+    background-position: center 18%;
+    background-color: var(--chip-bg);
+    display: flex; align-items: flex-end;
+  }
+  .modal-hero::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(10,10,14,0) 0%, rgba(10,10,14,0.1) 38%, rgba(10,10,14,0.92) 100%);
+  }
+  .modal-hero .modal-close {
+    position: absolute; top: 10px; right: 12px; z-index: 4;
+    background: rgba(10,10,14,0.5); border-radius: 50%;
+    width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: calc(18px * var(--tv-scale));
+  }
+  .modal-hero-content {
+    position: relative; z-index: 1;
+    display: flex; align-items: flex-end; gap: 14px;
+    padding: 16px 18px; width: 100%;
+  }
+  .modal-hero-poster {
+    width: 72px; aspect-ratio: 2 / 3; border-radius: 6px; flex: 0 0 auto;
+    object-fit: cover; box-shadow: 0 6px 18px rgba(0,0,0,0.5);
+    border: 2px solid var(--panel); display: block;
+  }
+  .modal-hero-text { color: #fff; padding-bottom: 2px; min-width: 0; }
+  .modal-hero-text .title {
+    font-size: calc(19px * var(--tv-scale)); font-weight: 700;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.7); text-wrap: balance;
+  }
+  .modal-hero-text .years { color: rgba(255,255,255,0.78); }
+  .modal-hero-badges { margin-top: 7px; display: flex; gap: 5px; flex-wrap: wrap; }
+
+  /* TV modal-hero backdrop carousel (SPEC 7.1). All position:absolute
+     children of .modal-hero, above the ::after scrim (z-index:3) but
+     below .modal-close (z-index:4). The nav buttons are small, vertically-
+     centred hit zones near the edges - NOT full-height strips - so they
+     can never sit over the close button (top-right corner) or otherwise
+     eat clicks meant for anything else in the hero. */
+  .bd-nav {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    width: 36px; height: 36px; border-radius: 50%; z-index: 3;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 22px; line-height: 1; cursor: pointer; user-select: none;
+    background: rgba(10,10,14,0.32); opacity: 0; transition: opacity .12s, background .12s;
+  }
+  .modal-hero:hover .bd-nav { opacity: .85; }
+  .bd-nav:hover { background: rgba(10,10,14,0.6); opacity: 1; }
+  .bd-prev { left: 8px; }
+  .bd-next { right: 8px; }
+  .bd-count {
+    position: absolute; left: 10px; bottom: 8px; z-index: 3;
+    font-size: 11px; color: rgba(255,255,255,0.85);
+    background: rgba(10,10,14,0.5); border-radius: 4px; padding: 1px 6px;
+    opacity: 0; transition: opacity .12s;
+  }
+  .modal-hero:hover .bd-count { opacity: 1; }
+  .bd-set {
+    position: absolute; right: 10px; bottom: 8px; z-index: 3;
+    font-size: 11px; color: #fff; cursor: pointer;
+    background: rgba(10,10,14,0.5); border: 1px solid rgba(255,255,255,0.35);
+    border-radius: 4px; padding: 2px 8px;
+    opacity: 0; transition: opacity .12s;
+  }
+  .modal-hero:hover .bd-set { opacity: 1; }
+  .bd-set.saved { background: rgba(181,117,15,0.32); border-color: var(--accent); opacity: 1; }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow);
+  }
+  .panel h2 { font-size: calc(15px * var(--tv-scale)); margin: 0 0 10px; display: flex; align-items: center; gap: 8px; }
+  .panel h2 .icon-chip {
+    width: 22px; height: 22px; border-radius: 6px; flex: 0 0 auto;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--accent-soft);
+  }
+  .panel h2 .icon-chip svg { width: 13px; height: 13px; display: block; color: var(--accent); }
+  .panel-body { max-height: 320px; overflow-y: auto; }
+  .plan-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: calc(1em * 0.15) 0;
+    border-top: 1px solid var(--border);
+    font-size: calc(12.5px * var(--tv-scale));
+  }
+  .plan-row:first-of-type { border-top: none; }
+  .plan-title { font-weight: 600; flex: 1 1 auto; min-width: 120px; }
+  .plan-arrow { color: var(--text-dim); }
+  .plan-dest { color: var(--text-dim); white-space: nowrap; }
+  .plan-size { color: var(--text-dim); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .plan-group { border-top: 1px solid var(--border); padding: 7px 0; }
+  .plan-group:first-of-type { border-top: none; }
+  .plan-group .plan-row { border-top: none; padding: 0 0 4px; }
+  .plan-file-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 2px 0 2px 14px; font-size: calc(11px * var(--tv-scale)); color: var(--text-dim);
+  }
+  .plan-file-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .plan-file-size { white-space: nowrap; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+  .badge.movie { background: var(--movie-soft); color: var(--movie); }
+  .dup-batch-bar { padding: 0 0 10px; }
+  #dup-process-btn { padding: 6px 14px; font-size: calc(12px * var(--tv-scale)); }
+  #dup-process-btn:disabled { opacity: 0.5; cursor: default; }
+  .dup-group { border-top: 1px solid var(--border); padding: 10px 0; }
+  .dup-group:first-of-type { border-top: none; }
+  .dup-group-header { font-weight: 600; font-size: calc(12.5px * var(--tv-scale)); margin-bottom: 6px; }
+  .dup-group-select-label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+  .dup-candidate {
+    display: flex; align-items: center; gap: 10px; padding: 5px 8px;
+    border-radius: 8px; background: var(--bg); margin-bottom: 4px; flex-wrap: wrap;
+  }
+  .dup-keep-radio { flex-shrink: 0; cursor: pointer; }
+  .dup-name { font-size: calc(12px * var(--tv-scale)); flex: 1 1 200px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dup-recommended { font-size: calc(10.5px * var(--tv-scale)); color: var(--movie); font-weight: 600; }
+  .dup-quality { font-size: calc(11.5px * var(--tv-scale)); color: var(--text-dim); white-space: nowrap; }
+  .dup-size { font-size: calc(11.5px * var(--tv-scale)); color: var(--text-dim); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .physical-note {
+    padding: 10px 14px 10px 30px;
+    border-top: 1px solid var(--border);
+    font-size: calc(12px * var(--tv-scale));
+    color: var(--text-dim);
+    font-style: italic;
+  }
+  .badge.category { background: var(--accent-soft); color: var(--accent); }
+  .badge.stage { background: var(--chip-bg); color: var(--text-dim); }
+  .badge.progress { background: var(--tv-soft); color: var(--tv); }
+
+  .toast {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--text); color: var(--bg); padding: 10px 18px; border-radius: 8px;
+    font-size: calc(13px * var(--tv-scale)); opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s;
+    z-index: 100; max-width: 90vw; text-align: center;
+  }
+  .toast.show { opacity: 0.95; transform: translateX(-50%) translateY(0); }
+
+  /* "Play on the TV" transport card - a centered floating remote, built
+     lazily by showTvControls(), kept in sync across every device by
+     pollVlcState() reading /api/vlc/state. Dedicated palette, scoped
+     to CSS variables on #tv-controls itself so it never leaks into the
+     rest of the app's own button colors: gold = the one primary action
+     (play/pause), cyan = seek, violet = chapter jump, green = volume,
+     red = stop (outlined, deliberately quiet - a rare/destructive action,
+     not a loud one). Same near-black background in both places this
+     renders (the floating card here, and the fullscreen remote-only
+     landscape page below) - one component, responsive in size only. */
+  #tv-controls {
+    --rc-bg: #0a0e14; --rc-panel: #12161f; --rc-text: #f4f6f8; --rc-text-dim: #6b7481;
+    --rc-border: #1a1f29;
+    --rc-gold: #f2b134; --rc-gold-text: #241a03;
+    --rc-cyan: #38b6e8;
+    --rc-violet: #a78bfa;
+    --rc-green: #4ade80; --rc-green-text: #0c2213;
+    --rc-red: #ef5757;
+    position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%) translateY(24px);
+    display: none; flex-direction: column;
+    width: min(460px, calc(100vw - 16px));
+    background: var(--rc-bg); color: var(--rc-text); border: 1px solid var(--rc-border);
+    border-radius: 18px; overflow: hidden; padding-bottom: 16px;
+    box-shadow: 0 18px 50px rgba(0,0,0,0.5);
+    z-index: 110; opacity: 0; transition: opacity .18s, transform .18s;
+  }
+  #tv-controls.show { display: flex; opacity: 1; transform: translateX(-50%) translateY(0); }
+  #tv-controls .tvc-head {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px 10px 14px;
+    background: #060809; border-bottom: 1px solid var(--rc-border);
+  }
+  #tv-controls .tvc-poster {
+    flex: none; width: 34px; height: 46px; border-radius: 5px; object-fit: cover;
+    background: linear-gradient(160deg,#242a34,#14171d);
+  }
+  #tv-controls .tvc-poster[hidden] { display: none; }
+  #tv-controls .tvc-headtext { flex: 1; min-width: 0; }
+  #tv-controls .tvc-eyebrow {
+    display: block; font-size: 9.5px; font-weight: 800; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--rc-gold); margin-bottom: 3px;
+  }
+  #tv-controls .tvc-label {
+    font-size: 15.5px; font-weight: 800; line-height: 1.22; color: var(--rc-text);
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  #tv-controls .tvc-tmdb {
+    flex: none; font-size: 10.5px; font-weight: 700; padding: 5px 10px; border-radius: 20px;
+    border: 1px solid #2a3140; background: transparent; color: #aab4c2; text-decoration: none;
+    white-space: nowrap;
+  }
+  #tv-controls .tvc-tmdb[hidden] { display: none; }
+  #tv-controls .tvc-close {
+    flex: 0 0 auto; width: 28px; height: 28px; border: none; border-radius: 50%;
+    background: transparent; color: var(--rc-text-dim); font-size: 19px; cursor: pointer; line-height: 1;
+    transition: background .12s, color .12s;
+  }
+  #tv-controls .tvc-body { display: flex; flex-direction: column; gap: 10px; padding: 12px 16px 0; }
+  #tv-controls .tvc-scrub { display: flex; align-items: center; gap: 12px; }
+  #tv-controls .tvc-t {
+    flex: 0 0 auto; min-width: 46px; font-size: 17px; font-weight: 700;
+    color: var(--rc-text-dim); font-variant-numeric: tabular-nums;
+  }
+  #tv-controls .tvc-t.cur { color: var(--rc-gold); }
+  #tv-controls .tvc-t.dur { text-align: right; }
+  #tv-controls .tvc-seek {
+    flex: 1; height: 6px; -webkit-appearance: none; appearance: none;
+    background: #1c212b; border-radius: 999px; accent-color: var(--rc-gold); cursor: pointer;
+  }
+  #tv-controls .tvc-seek::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none; width: 16px; height: 16px; border-radius: 50%;
+    background: var(--rc-gold); border: 3px solid var(--rc-bg); box-shadow: 0 1px 4px rgba(0,0,0,.4);
+  }
+  #tv-controls .tvc-seek::-moz-range-thumb {
+    width: 14px; height: 14px; border: 3px solid var(--rc-bg); border-radius: 50%; background: var(--rc-gold);
+  }
+  #tv-controls .tvc-row { display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; }
+  #tv-controls .tvc-row.transport { justify-content: center; align-items: center; }
+  #tv-controls .tvc-row.utility { justify-content: center; }
+  #tv-controls .tvc-btn {
+    min-width: 46px; height: 42px; padding: 0 10px;
+    border: none; border-radius: 50%; background: transparent;
+    font-size: 13px; font-weight: 800; cursor: pointer; line-height: 1;
+    display: inline-flex; align-items: center; justify-content: center;
+    transition: background .12s, color .12s, transform .06s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #tv-controls .tvc-btn:active { transform: scale(.9); }
+  #tv-controls .tvc-btn:disabled { opacity: .35; cursor: progress; }
+  #tv-controls .tvc-nav { color: var(--rc-cyan); background: rgba(56,182,232,.12); }
+  #tv-controls .tvc-pause {
+    min-width: 60px; width: 60px; height: 52px; border-radius: 50%; font-size: 18px;
+    color: var(--rc-gold-text); background: var(--rc-gold);
+    box-shadow: 0 0 0 4px rgba(242,177,52,.14);
+  }
+  #tv-controls .tvc-cardgroup {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 4px; border-radius: 14px; padding: 6px 14px;
+  }
+  #tv-controls .tvc-cardgroup[hidden] { display: none; }
+  #tv-controls .tvc-cardlabel { font-size: 8.5px; font-weight: 800; letter-spacing: .1em; }
+  #tv-controls .tvc-cardbtns { display: flex; align-items: center; gap: 8px; }
+  #tv-controls .tvc-chaptergroup { background: rgba(167,139,250,.08); border: 1px solid rgba(167,139,250,.22); }
+  #tv-controls .tvc-chaptergroup .tvc-cardlabel { color: var(--rc-violet); }
+  #tv-controls .tvc-chapter { width: 40px; height: 40px; color: var(--rc-violet); background: rgba(167,139,250,.14); font-size: 14px; }
+  #tv-controls .tvc-volgroup2 {
+    background: rgba(74,222,128,.08); border: 1px solid rgba(74,222,128,.22); flex-grow: 1; max-width: 260px;
+  }
+  #tv-controls .tvc-volgroup2 .tvc-cardlabel { color: var(--rc-green); }
+  #tv-controls .tvc-volrow { width: 100%; gap: 7px; }
+  #tv-controls .tvc-vol { width: 34px; height: 34px; flex: none; color: var(--rc-green); background: rgba(74,222,128,.14); font-size: 13px; }
+  #tv-controls .tvc-volbar { flex-grow: 1; height: 7px; border-radius: 4px; background: #17251c; position: relative; overflow: hidden; }
+  #tv-controls .tvc-volfill { position: absolute; left: 0; top: 0; bottom: 0; width: 0%; background: var(--rc-green); border-radius: 4px; transition: width .15s; }
+  #tv-controls .tvc-volpct {
+    flex: none; font-size: 12px; font-weight: 700; color: var(--rc-green);
+    font-variant-numeric: tabular-nums; min-width: 30px; text-align: right;
+  }
+  #tv-controls .tvc-voldivider { flex: none; width: 1px; align-self: stretch; background: rgba(74,222,128,.22); }
+  #tv-controls .tvc-mute { background: transparent; border: 1.5px solid rgba(74,222,128,.4); }
+  #tv-controls .tvc-mute.is-muted { color: var(--rc-green-text); background: var(--rc-green); border-color: var(--rc-green); }
+  #tv-controls .tvc-stop {
+    flex: none; width: auto; min-width: 0; height: auto; padding: 10px 16px;
+    border-radius: 14px; border: 1.5px solid #7a3030; color: var(--rc-red); background: transparent;
+    font-size: 12px; gap: 4px;
+  }
+  /* :hover only for a device that genuinely has hover (a mouse) - on
+     touch, tapping fires a synthetic :hover with no matching "unhover"
+     event, so a filled hover background used to stick until the next tap
+     elsewhere (confirmed real, 2026-09-26: every nav/vol/stop button on
+     the phone remote stayed visually "pressed" after every tap - only
+     Play/Pause and Mute looked fine, because they already had a permanent
+     tinted base style masking the same stuck-hover effect underneath).
+     The -webkit-tap-highlight-color reset above closes the other half of
+     it - the browser's own default tap flash. */
+  @media (hover: hover) and (pointer: fine) {
+    #tv-controls .tvc-close:hover { background: rgba(255,255,255,.08); color: var(--rc-text); }
+    #tv-controls .tvc-nav:hover { background: var(--rc-cyan); color: #041824; }
+    #tv-controls .tvc-pause:hover { filter: brightness(1.06); }
+    #tv-controls .tvc-chapter:hover { background: var(--rc-violet); color: #1c1233; }
+    #tv-controls .tvc-vol:hover { background: var(--rc-green); color: var(--rc-green-text); }
+    #tv-controls .tvc-stop:hover { background: var(--rc-red); color: #200a0a; }
+  }
+  html.dev-phone #tv-controls .tvc-body { padding: 10px 12px 0; gap: 8px; }
+  html.dev-phone #tv-controls .tvc-btn { min-width: 42px; height: 42px; padding: 0 8px; }
+  html.dev-phone #tv-controls .tvc-pause { width: 58px; height: 50px; }
+  html.dev-phone #tv-controls .tvc-label { font-size: 15px; }
+  html.dev-phone #tv-controls .tvc-cardgroup { padding: 5px 10px; }
+  html.dev-phone #tv-controls .tvc-chapter,
+  html.dev-phone #tv-controls .tvc-vol { width: 32px; height: 32px; }
+
+  /* "Reopen on the TV" pill - phone/tablet remote only, shown when VLC is
+     closed and /api/vlc/state still carries a last_path to bring back. */
+  #tv-reopen {
+    position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%) translateY(24px);
+    display: none; align-items: center; gap: 10px;
+    padding: 12px 20px 12px 16px; border: none; border-radius: 999px;
+    background: var(--btn-filelib); color: var(--bg);
+    font-size: 13.5px; font-weight: 800; cursor: pointer;
+    box-shadow: 0 14px 36px rgba(0,0,0,.45);
+    z-index: 109; opacity: 0; transition: opacity .18s, transform .18s;
+    max-width: calc(100vw - 24px);
+  }
+  #tv-reopen.show { display: inline-flex; opacity: 1; transform: translateX(-50%) translateY(0); }
+  #tv-reopen:disabled { opacity: .55; cursor: progress; }
+  #tv-reopen .tvr-main { white-space: nowrap; }
+  #tv-reopen .tvr-sub {
+    font-weight: 600; opacity: .82; white-space: nowrap; overflow: hidden;
+    text-overflow: ellipsis; max-width: 44vw;
+  }
+
+  /* Remote-only port (see REMOTE_ONLY above / REMOTE_PORT in
+     app/web_server.py) - same page, same script, just the library grid and
+     the boot/refresh overlay hidden. #tv-controls/#tv-reopen are both
+     position:fixed directly on <body>, so hiding .wrap doesn't touch them
+     at all - this is the entire diff between the two ports. */
+  html.remote-only .wrap { display: none; }
+  html.remote-only #boot-overlay { display: none !important; }
+
+  /* Portrait/landscape enforcement, remote-only page only -
+     no real
+     orientation LOCK exists on iOS Safari for web content - screen.
+     orientation.lock() throws NotSupportedError there even as a home-
+     screen app, and the manifest's own "orientation" field is silently
+     ignored (it only does anything on Android/Chrome, see /remote-
+     manifest.webmanifest in web_server.py) - so this CSS split IS the
+     actual mechanism, not a stand-in for something better: portrait shows
+     only a rotate prompt, landscape makes the transport card fill the
+     screen like a real physical remote instead of a scaled-up widget. */
+  @media (orientation: portrait) {
+    html.remote-only #tv-controls,
+    html.remote-only #tv-reopen,
+    html.remote-only #remote-idle { display: none !important; }
+    /* Overrides .boot-overlay[hidden]{display:none} (the element is
+       hidden by default in the markup, same as everywhere else this
+       "hidden unless a specific mode needs it" pattern is used on this
+       page) - needs !important to actually win against an attribute
+       selector rule, not just a plain class one. */
+    html.remote-only #remote-rotate-prompt { display: flex !important; }
+  }
+  @media (orientation: landscape) {
+    html.remote-only #remote-rotate-prompt { display: none !important; }
+    /* 100dvw/100dvh after the 100vw/100vh fallback (not instead of) - iOS
+       Safari's address bar makes plain vh unreliable, dvh is the fix, but
+       only where supported. safe-area padding on left/right specifically:
+       in landscape on an iPhone the sensor housing and rounded corners sit
+       on the SIDES, not top/bottom. */
+    /* Sized for a real, ordinary phone in landscape (2026-09-29, corrected
+       after live device feedback - the first pass was scaled for a large
+       tablet-class screen: buttons ran off the bottom of the viewport,
+       colliding with the browser's own chrome). Deliberately close to the
+       base/floating-card sizing just above, not dramatically bigger - an
+       ordinary phone's landscape viewport genuinely isn't that much taller
+       than a desktop floating card. */
+    html.remote-only #tv-controls.show {
+      left: 0 !important; right: 0 !important; top: 0 !important; bottom: 0 !important;
+      transform: none !important;
+      width: 100vw !important; width: 100dvw !important;
+      height: 100vh !important; height: 100dvh !important;
+      border-radius: 0; border: none; box-shadow: none;
+      justify-content: center;
+      padding-left: max(12px, env(safe-area-inset-left));
+      padding-right: max(12px, env(safe-area-inset-right));
+      padding-top: max(4px, env(safe-area-inset-top));
+      padding-bottom: max(4px, env(safe-area-inset-bottom));
+    }
+    html.remote-only #tv-controls .tvc-body {
+      flex: 1; justify-content: center; gap: 7px;
+      padding: 5px 8px 3px; max-width: 460px; margin: 0 auto; width: 100%;
+    }
+    html.remote-only #tv-controls .tvc-head { flex: 0 0 auto; padding: 4px 12px; }
+    html.remote-only #tv-controls .tvc-poster { width: 30px; height: 42px; }
+    html.remote-only #tv-controls .tvc-label { font-size: 15px; }
+    html.remote-only #tv-controls .tvc-tmdb { font-size: 10.5px; padding: 5px 10px; }
+    html.remote-only #tv-controls .tvc-t { font-size: 18px; min-width: 46px; }
+    html.remote-only #tv-controls .tvc-seek { height: 6px; }
+    html.remote-only #tv-controls .tvc-btn { min-width: 46px; height: 46px; font-size: 13px; }
+    html.remote-only #tv-controls .tvc-pause { width: 62px; height: 62px; font-size: 20px; }
+    html.remote-only #tv-controls .tvc-nav { width: 44px; height: 44px; font-size: 13px; }
+    html.remote-only #tv-controls .tvc-row.utility { align-items: stretch; gap: 10px; }
+    html.remote-only #tv-controls .tvc-cardgroup { padding: 3px 12px; gap: 2px; }
+    html.remote-only #tv-controls .tvc-cardlabel { font-size: 8.5px; }
+    html.remote-only #tv-controls .tvc-cardbtns { gap: 8px; }
+    html.remote-only #tv-controls .tvc-chapter { width: 38px; height: 38px; font-size: 14px; }
+    html.remote-only #tv-controls .tvc-volgroup2 { max-width: 300px; }
+    html.remote-only #tv-controls .tvc-vol { width: 32px; height: 32px; font-size: 13px; }
+    html.remote-only #tv-controls .tvc-volbar { height: 6px; }
+    html.remote-only #tv-controls .tvc-volpct { font-size: 12px; min-width: 30px; }
+    html.remote-only #tv-controls .tvc-stop { padding: 8px 14px; font-size: 11px; }
+    /* Auto-dim after inactivity (2026-09-29) - a real remote control's own
+       behavior: nothing to look at in a dark room once you've stopped
+       touching it. Any tap/touch anywhere on the card resets the timer
+       (see resetTvAutoDim() in the script) - the dim state itself never
+       blocks input, it just fades the chrome, so the very tap that wakes
+       it also still reaches its button. Remote-only only - the small
+       floating card on the main app never dims, it's not meant to be
+       stared at like a real remote. */
+    html.remote-only #tv-controls.tvc-dim { opacity: .32 !important; transition: opacity 1.1s ease !important; }
+  }
+  #remote-rotate-prompt .rrp-icon { font-size: 56px; line-height: 1; margin-bottom: 4px; }
+  #remote-rotate-prompt .rrp-icon .rrp-phone {
+    display: inline-block; animation: remote-rotate-hint 2.6s ease-in-out infinite;
+  }
+  @keyframes remote-rotate-hint {
+    0%, 15% { transform: rotate(0deg); }
+    45%, 65% { transform: rotate(90deg); }
+    95%, 100% { transform: rotate(0deg); }
+  }
+
+  /* ---------------------------------------------------------------------
+     Narrow screens (phone-as-remote, see /api/play). The entry-row grid
+     has ~7 fixed columns set inline; below ~640px the name column
+     collapses to zero and the episode title renders one letter per line.
+     Everything here reflows those rows to a vertical stack and full-bleeds
+     the modal. (In server mode the Play button is the controllable
+     "Play on the TV" button on every device now - no openvlc:// link to
+     hide.)
+     ------------------------------------------------------------------ */
+  @media (max-width: 640px) {
+    .wrap { padding: 12px 8px 48px; }
+    .app-hero { margin-bottom: 10px; }
+    header { justify-content: center; padding: 0 10px 16px; gap: 8px; }
+    .header-actions { flex-wrap: wrap; justify-content: center; }
+
+    .front-panels { grid-template-columns: 1fr !important; }
+
+    .modal-overlay { padding: 0; }
+    .modal-box { max-width: 100%; width: 100%; border-radius: 0; min-height: 100dvh; }
+    .modal-hero { height: 170px; }
+    .modal-header { padding: 12px 44px 12px 12px; }
+
+    .entry-header-row { display: none; }
+    .entry-row {
+      display: flex; flex-wrap: wrap; align-items: center;
+      gap: 6px 10px; padding: 12px;
+    }
+    .entry-row .entry-name {
+      flex: 1 1 100%; order: 1; font-size: 14px;
+      word-break: normal; overflow-wrap: anywhere;
+    }
+    .entry-row .watched-check, .entry-row .root-dot { order: 2; }
+    .entry-row .entry-size { order: 3; font-size: 12px; color: var(--text-dim); }
+    .entry-row .entry-date { order: 4; margin-left: auto; }
+    .entry-row .entry-actions {
+      order: 5; flex: 1 1 100%; justify-content: flex-start; gap: 12px; margin-top: 2px;
+    }
+    .entry-row .entry-actions .icon-btn { width: 44px; height: 44px; }
+
+    .retention-row { flex-wrap: wrap; }
+    .retention-row select { flex: 1 1 160px; min-width: 0; }
+    .detail { flex-wrap: wrap; }
+  }
+
+  /* ---------------------------------------------------------------------
+     Device-aware tuning for a phone or tablet used as the remote
+     (IS_REMOTE = the page was opened over the LAN address). A short JS
+     pass adds html.dev-phone or html.dev-tablet based on the screen's
+     shorter side. Nothing here removes content - posters, the modal
+     backdrop, synopsis, ratings, external links, the trailer and the
+     cast strip all stay. It only raises the type scale, contrast and
+     tap-target sizes, and (phone only) tightens the frame. Desktop /
+     localhost gets neither class and is untouched.
+     ------------------------------------------------------------------ */
+  html.dev-phone body, html.dev-tablet body { font-size: 15px; }
+  html.dev-phone:not([data-theme="light"]),
+  html.dev-tablet:not([data-theme="light"]) { --text-dim: #aeb4be; }
+
+  html.dev-phone a.icon-btn, html.dev-phone button.icon-btn,
+  html.dev-tablet a.icon-btn, html.dev-tablet button.icon-btn { width: 42px; height: 42px; }
+  html.dev-phone .open-link, html.dev-tablet .open-link { font-size: 13px; padding: 7px 12px; }
+  /* the synopsis is dim grey by default - lift it to body text on a
+     hand-held so the description is actually readable */
+  html.dev-phone .detail .overview, html.dev-tablet .detail .overview { color: var(--text); }
+
+  /* ---- phone: mobile-app feel - short banner strip, swipe shelves ---- */
+  /* Keep the header wallpaper (just cap it to a banner) and its dark
+     scrim - do NOT flatten it to a panel colour. */
+  html.dev-phone .app-hero {
+    /* max-height raised from 128px (2026-09-13) - the header button row
+       needs more room than that now: more buttons (the File Management/
+       Admin/Help hubs) and the permanent TV-scale text/icon sizing both
+       need real space, and this box no longer clips overflow (see the
+       hub-menu popover comment on .app-hero above) - anything that didn't
+       fit used to just spill out and overlap "What's New" below it,
+       confirmed real 2026-09-13. The header-actions/icon-chip shrinking
+       below keeps the row itself compact so this rarely needs the full
+       210px in practice.
+       aspect-ratio: auto is the real fix for a second, subtler bug found
+       testing the above - the base .app-hero rule's aspect-ratio (exact
+       desktop banner crop) doesn't just get ignored once min/max-height
+       clamp the height here; Chrome then derives WIDTH from that clamped
+       height via the still-active ratio instead, measured making the box
+       ~400px wide inside a 359px-wide phone screen (confirmed via
+       getBoundingClientRect(), not a guess) - which is exactly why the
+       corner Refresh Page button was still clipped off-screen after the
+       icon-only sizing fix below. Phone already controls height directly
+       via min/max-height above; it never needed the ratio at all. */
+    aspect-ratio: auto;
+    min-height: 92px; max-height: 210px; margin-bottom: 12px;
+    background-position: center 40%;
+  }
+  html.dev-phone .app-hero-inner { padding: 12px 16px 8px; }
+  html.dev-phone .app-title { font-size: 22px; }
+  html.dev-phone .app-tagline { font-size: 11px; }
+  html.dev-phone header { padding: 0 12px 12px; }
+  /* Compact header buttons for phone (2026-09-13) - a real ~375px screen
+     can't fit this many buttons at their normal (let alone TV-scaled)
+     size without wrapping badly. Shrinks every icon-chip uniformly,
+     including the "featured" bigger ones (Watch List/Weekly TV/Franchise/
+     YouTube) - the size hierarchy that matters on desktop is a luxury
+     this width doesn't have room for. */
+  html.dev-phone .header-actions { gap: 5px; }
+  html.dev-phone .header-btn { padding: 5px; font-size: 11px; }
+  html.dev-phone .header-btn .icon-chip,
+  html.dev-phone #top10-btn .icon-chip,
+  html.dev-phone #weekly-tv-toggle .icon-chip,
+  html.dev-phone #franchise-mode-toggle .icon-chip,
+  html.dev-phone #youtube-mode-toggle .icon-chip { width: 26px; height: 26px; padding: 0; }
+  html.dev-phone .header-btn .icon-chip svg,
+  html.dev-phone #top10-btn .icon-chip svg,
+  html.dev-phone #weekly-tv-toggle .icon-chip svg,
+  html.dev-phone #franchise-mode-toggle .icon-chip svg,
+  html.dev-phone #youtube-mode-toggle .icon-chip svg { width: 15px; height: 15px; }
+  /* The bottom-right corner "Refresh Page" pill (2026-09-13) - full text
+     label + tv-scaled font overflowed the screen edge and collided with
+     the app title at phone width, confirmed real. Icon-only here
+     (font-size:0 collapses the text node without needing a separate span
+     to hide - the svg below sets its own explicit size regardless). */
+  html.dev-phone .refresh-page-btn {
+    top: 8px; right: 8px; padding: 6px; font-size: 0; gap: 0;
+  }
+  html.dev-phone .refresh-page-btn svg { width: 14px; height: 14px; }
+
+  /* What's New / Continue / Recently Watched: one horizontal row each,
+     swipe left-right, snap to card. Only the three front panels - the
+     main library grid (#grid, no .grid-compact) is untouched. */
+  html.dev-phone .front-panels { grid-template-columns: 1fr !important; gap: 10px; }
+  html.dev-phone .front-panels .grid-compact {
+    display: flex; flex-wrap: nowrap; grid-template-columns: none;
+    align-items: flex-start;
+    gap: 10px; overflow-x: auto; overflow-y: hidden;
+    scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px; scrollbar-width: none;
+  }
+  html.dev-phone .front-panels .grid-compact::-webkit-scrollbar { display: none; }
+  html.dev-phone .front-panels .poster-card {
+    flex: 0 0 104px; width: 104px; scroll-snap-align: start;
+  }
+  html.dev-phone .front-panels .poster-img,
+  html.dev-phone .front-panels .poster-placeholder {
+    width: 104px; height: 156px; aspect-ratio: auto; flex: 0 0 auto;
+  }
+  html.dev-phone .front-panels .poster-placeholder { font-size: 11px; padding: 6px; }
+  html.dev-phone .front-panels .poster-title {
+    font-size: 12px; -webkit-line-clamp: 2; margin-bottom: 4px;
+  }
+  html.dev-phone .front-panels .poster-meta { padding: 5px 7px; }
+  html.dev-phone .front-panels .badge { font-size: 10px; padding: 2px 6px; max-width: none; }
+  /* keep the shelf card short: only the watch-critical chips (type,
+     progress, missing-episode, next-airdate) + the root dots. Genre,
+     archive-category and the duplicate-space note are one tap away in
+     the modal and only make the card tall here. */
+  html.dev-phone .front-panels .poster-badges .badge.genre,
+  html.dev-phone .front-panels .poster-badges .badge.category,
+  html.dev-phone .front-panels .poster-badges .badge.warn { display: none; }
+
+  /* list-view rows: a small poster thumbnail + bigger title */
+  html.dev-phone .card-thumb, html.dev-tablet .card-thumb {
+    width: 40px; height: 60px; flex: 0 0 auto; border-radius: 4px;
+    object-fit: cover; background: var(--chip-bg); display: block;
+  }
+  html.dev-phone .card-row { align-items: center; }
+  html.dev-phone .card-row .title { font-size: 15px; }
+  html.dev-phone .entry-row .entry-name { font-size: 15px; }
+  html.dev-phone .entry-row .entry-size,
+  html.dev-phone .entry-row .entry-date { font-size: 12.5px; }
+
+  /* modal: keep the backdrop + poster + cast, just size them down */
+  html.dev-phone .modal-hero { height: 150px; }
+  html.dev-phone .modal-header .title,
+  html.dev-phone .modal-hero-text .title { font-size: 19px; }
+  html.dev-phone .detail { flex-wrap: wrap; }
+  html.dev-phone .detail img.poster { width: 92px; }
+
+  /* ---- tablet / iPad: the desktop layout, gently enlarged ---- */
+  html.dev-tablet .grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }

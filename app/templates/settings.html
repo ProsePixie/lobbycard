@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Settings - @@title@@</title>
+<style>
+  :root { --bg:#f5f6f8; --panel:#fff; --text:#1c1e21; --dim:#6b7280; --border:#e2e4e8; --accent:#B5750F; --accent-soft:#F7EEDC;
+          --ok:#1f8a5f; --bad:#c0392b; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#14161a; --panel:#1d2025; --text:#eceef1; --dim:#9aa0aa; --border:#2c3036;
+          --accent:#E8A33D; --accent-soft:#332711; --ok:#5cd6a4; --bad:#f87171; } }
+  @@accent_css@@
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
+  main { max-width:760px; margin:0 auto; padding:28px 16px 64px; }
+  .top { display:flex; justify-content:space-between; align-items:baseline; gap:12px; flex-wrap:wrap; }
+  h1 { margin:0 0 4px; font-size:28px; } .sub { color:var(--dim); margin:0 0 22px; }
+  a { color:var(--accent); } a.back { font-size:15px; text-decoration:none; font-weight:600; }
+  section { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:18px 20px; margin-bottom:16px; }
+  section h2 { margin:0 0 4px; font-size:18px; } section p.help { margin:0 0 12px; color:var(--dim); font-size:14px; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  label.field { display:block; font-size:13px; font-weight:600; color:var(--dim); margin:12px 0 4px; }
+  input[type=text], input[type=password] { flex:1; min-width:200px; width:100%; padding:9px 11px; border:1px solid var(--border); border-radius:8px;
+          background:var(--bg); color:var(--text); font:inherit; }
+  .row input[type=text], .row input[type=password] { width:auto; }
+  input[type=color] { width:46px; height:38px; padding:2px; border:1px solid var(--border); border-radius:8px; background:var(--bg); cursor:pointer; }
+  input[type=range] { flex:1; min-width:160px; accent-color:var(--accent); }
+  button { padding:9px 14px; border-radius:8px; border:1px solid var(--border); background:var(--panel); color:var(--text); font:inherit; cursor:pointer; }
+  button:hover { background:var(--accent-soft); } button.primary { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600; }
+  button:disabled { opacity:.5; cursor:not-allowed; }
+  .msg { margin-top:8px; font-size:14px; min-height:1.2em; } .ok { color:var(--ok); } .bad { color:var(--bad); }
+  .picker { margin-top:10px; border:1px solid var(--border); border-radius:8px; max-height:240px; overflow:auto; background:var(--bg); }
+  .picker .cur { padding:8px 10px; font-size:13px; color:var(--dim); border-bottom:1px solid var(--border); word-break:break-all; position:sticky; top:0; background:var(--bg); }
+  .picker .item { padding:7px 10px; cursor:pointer; border-bottom:1px solid var(--border); } .picker .item:hover { background:var(--accent-soft); }
+  .picker .use { padding:8px 10px; } ul.q { list-style:none; padding:0; margin:8px 0 0; }
+  ul.q li { display:flex; gap:8px; align-items:center; padding:6px 0; word-break:break-all; } ul.q li button { padding:3px 9px; }
+  table { border-collapse:collapse; width:100%; font-size:14px; margin-top:8px; } td,th { text-align:left; padding:4px 8px 4px 0; border-bottom:1px solid var(--border); vertical-align:top; }
+  .warn { color:var(--bad); font-size:14px; margin:6px 0; } .stat { display:inline-block; margin-right:16px; } .stat b { font-size:20px; }
+  .small { font-size:13px; color:var(--dim); }
+  .pair { display:grid; grid-template-columns:1fr 1fr; gap:12px; } @media (max-width:560px) { .pair { grid-template-columns:1fr; } }
+  /* live preview of the header */
+  .preview { position:relative; border-radius:10px; overflow:hidden; aspect-ratio:1600/368; background:#14161a center/cover no-repeat; margin:4px 0 4px; border:1px solid var(--border); }
+  .preview::after { content:""; position:absolute; inset:0; background:linear-gradient(180deg, rgba(8,6,18,.3) 0%, rgba(8,6,18,.55) 45%, rgba(8,6,18,.85) 100%); }
+  .preview .txt { position:absolute; z-index:1; left:5%; top:12%; right:5%; color:#fff; }
+  .preview .t { font-weight:900; letter-spacing:.12em; font-size:clamp(14px,4vw,30px); line-height:1.1; text-shadow:0 2px 10px rgba(0,0,0,.7); overflow-wrap:anywhere; }
+  .preview .s { margin-top:6px; font-size:clamp(10px,1.8vw,14px); color:rgba(255,255,255,.85); }
+  .preview .chip { position:absolute; z-index:1; right:4%; bottom:10%; width:clamp(26px,5vw,44px); aspect-ratio:1; border-radius:8px; background:var(--accent); opacity:.95; }
+</style></head>
+<body><main>
+<div class="top">
+  <h1 id="h1">Settings</h1>
+  <a class="back" id="back" href="/" hidden>&larr; Back to the library</a>
+</div>
+<p class="sub" id="sub">Point the app at your media folders, add your TMDB key, and make it look the way you like. Nothing is moved, renamed or deleted by this page.</p>
+
+
+<p class="small" style="margin:-8px 0 16px">Jump to: <a href="#s-lib">Folders</a> &middot; <a href="#s-key">TMDB key</a> &middot; <a href="#s-app">Appearance</a></p>
+
+<section id="s-lib">
+  <h2>Library folder</h2>
+  <p class="help">The folder your shows and movies already live in (or will be filed into), for example <code>Series/Show Name/Season 01</code>.</p>
+  <div class="row"><input type="text" id="archive" placeholder="Choose or paste a folder path"><button id="b-lib">Browse...</button></div>
+  <div class="picker" id="pick-lib" hidden></div>
+</section>
+
+<section id="s-q">
+  <h2>Incoming folders <span class="small">(optional)</span></h2>
+  <p class="help">Where finished downloads land before they are filed. You can add more than one, or skip this.</p>
+  <div class="row"><input type="text" id="queue" placeholder="Choose or paste a folder path"><button id="b-q">Browse...</button><button id="b-qadd">Add</button></div>
+  <div class="picker" id="pick-q" hidden></div>
+  <ul class="q" id="qlist"></ul>
+</section>
+
+<section id="s-key">
+  <h2>TMDB API key</h2>
+  <p class="help">Posters, cast and episode data come from <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noopener">The Movie Database</a>. A free account gets you a v3 API key (32 characters). It is stored only in this app's data folder.</p>
+  <div class="row"><input type="password" id="key" placeholder="Paste your TMDB v3 API key" autocomplete="off" spellcheck="false"><button id="b-key">Test key</button></div>
+  <div class="msg" id="m-key"></div>
+  <p class="small">This product uses the TMDB API but is not endorsed or certified by TMDB.</p>
+</section>
+
+<section id="s-check">
+  <h2>Look inside, then save</h2>
+  <p class="help">A dry run reads file names only and reports what the scanner would make of them. Saving folders restarts the app (if you started it with <code>python run.py</code>).</p>
+  <div class="row"><button id="b-dry">Look inside my folders</button></div>
+  <div id="dry"></div>
+  <div class="row" style="margin-top:16px"><button class="primary" id="b-save" disabled>Save folders and restart</button></div>
+  <div class="msg" id="m-save"></div>
+</section>
+<section id="s-app">
+  <h2>Appearance</h2>
+  <p class="help">Change the title, the subtitle and the header image. These apply the next time the library page loads, no restart needed.</p>
+  <div class="preview" id="pv"><div class="txt"><div class="t" id="pv-t"></div><div class="s" id="pv-s"></div></div><div class="chip"></div></div>
+  <div class="small">Preview. The image is cropped to a wide strip; use the slider to choose which part of a tall image stays in view.</div>
+
+  <label class="field" for="a-title">Title</label>
+  <input type="text" id="a-title" maxlength="60" placeholder="">
+  <label class="field" for="a-tag">Subtitle</label>
+  <input type="text" id="a-tag" maxlength="120" placeholder="">
+
+  <label class="field">Header image</label>
+  <div class="row">
+    <button id="b-up">Upload an image...</button>
+    <button id="b-up-clear">Use the built-in image</button>
+    <input type="file" id="a-file" accept="image/jpeg,image/png,image/webp,image/gif" hidden>
+  </div>
+  <div class="small" id="up-note">A wide picture works best, around 1600 by 370 pixels. JPEG, PNG, WebP or GIF, up to 8 MB.</div>
+  <div class="msg" id="m-up"></div>
+  <label class="field" for="a-focus">Image position</label>
+  <div class="row"><span class="small">Top</span><input type="range" id="a-focus" min="0" max="100" value="50"><span class="small">Bottom</span></div>
+
+  <div class="pair">
+    <div>
+      <label class="field" for="a-accent">Accent colour</label>
+      <div class="row"><input type="color" id="a-accent" value="#b5750f"><button id="b-accent-reset">Default</button></div>
+    </div>
+    <div>
+      <label class="field">The two watch lists (names)</label>
+      <div class="row"><input type="text" id="a-p1" maxlength="30" placeholder="You"><input type="text" id="a-p2" maxlength="30" placeholder="Partner"></div>
+    </div>
+  </div>
+  <div class="row" style="margin-top:16px"><button class="primary" id="b-app-save">Save appearance</button><button id="b-app-reset">Reset all to the defaults</button></div>
+  <div class="msg" id="m-app"></div>
+</section>
+</main>
+<script>
+const TOKEN = @@token_json@@, DEMO = @@demo_json@@, CONFIGURED = @@configured_json@@, DEFAULTS = @@defaults_json@@;
+const $ = id => document.getElementById(id);
+const headers = { 'X-Auth-Token': TOKEN, 'Content-Type': 'application/json' };
+let queues = [], keyOk = false, keyText = '', accentDefault = true, hasHeader = false, headerStamp = Date.now(), packBanner = true;
+async function api(path, body) {
+  const r = await fetch(path, body === undefined ? { headers } : { method: 'POST', headers, body: JSON.stringify(body) });
+  return r.json().catch(() => ({ ok: false, message: 'Unexpected answer from the server.' }));
+}
+function esc(s) { return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function say(id, ok, text) { const m = $(id); m.className = 'msg ' + (ok ? 'ok' : 'bad'); m.textContent = text; }
+
+// ---------------------------------------------------------------- appearance
+function drawPreview() {
+  $('pv-t').textContent = $('a-title').value.trim() || DEFAULTS.title;
+  $('pv-s').textContent = $('a-tag').value.trim() === '' && !tagTouched ? DEFAULTS.tagline : $('a-tag').value.trim();
+  const url = hasHeader ? '/setup/header.jpg?t=' + headerStamp : (packBanner ? '/setup/banner-default?t=' + headerStamp : '');
+  $('pv').style.backgroundImage = url ? "url('" + url + "')" : 'none';
+  $('pv').style.backgroundPosition = '50% ' + $('a-focus').value + '%';
+  document.documentElement.style.setProperty('--accent', $('a-accent').value);
+}
+let tagTouched = false;
+['a-title', 'a-focus'].forEach(id => $(id).addEventListener('input', drawPreview));
+$('a-tag').addEventListener('input', () => { tagTouched = true; drawPreview(); });
+$('a-accent').addEventListener('input', () => { accentDefault = false; drawPreview(); });
+$('b-accent-reset').onclick = () => { accentDefault = true; $('a-accent').value = DEFAULTS.accent; document.documentElement.style.removeProperty('--accent'); drawPreview(); };
+
+function fillAppearance(a) {
+  $('a-title').value = a.saved.title || '';
+  $('a-title').placeholder = DEFAULTS.title;
+  $('a-tag').value = 'tagline' in a.saved ? a.saved.tagline : '';
+  tagTouched = 'tagline' in a.saved;
+  $('a-tag').placeholder = DEFAULTS.tagline;
+  accentDefault = !a.saved.accent;
+  $('a-accent').value = a.saved.accent || DEFAULTS.accent;
+  const names = a.saved.people || [];
+  $('a-p1').value = names[0] || ''; $('a-p2').value = names[1] || '';
+  $('a-focus').value = 'header_focus' in a.saved ? a.saved.header_focus : 50;
+  hasHeader = a.has_header; packBanner = a.has_pack_banner;
+  $('b-up-clear').disabled = !hasHeader;
+  drawPreview();
+}
+
+$('b-up').onclick = () => $('a-file').click();
+$('a-file').onchange = async () => {
+  const f = $('a-file').files[0];
+  if (!f) return;
+  say('m-up', true, 'Uploading...');
+  const fd = new FormData(); fd.append('image', f);
+  const r = await fetch('/api/setup/header', { method: 'POST', headers: { 'X-Auth-Token': TOKEN }, body: fd }).then(x => x.json()).catch(() => ({ ok: false, message: 'Upload failed.' }));
+  $('a-file').value = '';
+  if (r.ok) { hasHeader = true; headerStamp = Date.now(); $('b-up-clear').disabled = false; say('m-up', true, 'Header image saved.'); drawPreview(); }
+  else say('m-up', false, r.message || 'That image could not be used.');
+};
+$('b-up-clear').onclick = async () => {
+  await api('/api/setup/header/clear', {});
+  hasHeader = false; headerStamp = Date.now(); $('b-up-clear').disabled = true; say('m-up', true, 'Using the built-in image.'); drawPreview();
+};
+$('b-app-save').onclick = async () => {
+  const title = $('a-title').value.trim(), tag = $('a-tag').value;
+  const body = {
+    title: title || null,
+    tagline: tagTouched ? tag.trim() : null,
+    accent: accentDefault ? null : $('a-accent').value,
+    people: ($('a-p1').value.trim() || $('a-p2').value.trim()) ? [$('a-p1').value.trim(), $('a-p2').value.trim()] : null,
+    header_focus: parseInt($('a-focus').value, 10),
+  };
+  // an empty subtitle that was typed on purpose is kept (a subtitle-free header); untouched means "use the default"
+  const r = await api('/api/setup/appearance', body);
+  if (r.ok) say('m-app', true, 'Saved. Open the library to see it.'); else say('m-app', false, r.message || 'Could not save.');
+};
+$('b-app-reset').onclick = async () => {
+  const r = await api('/api/setup/appearance', { title: null, tagline: null, accent: null, people: null, header_focus: null });
+  await api('/api/setup/header/clear', {});
+  if (r.ok) { const a = await api('/api/setup/appearance'); fillAppearance(a); say('m-app', true, 'Back to the defaults.'); }
+};
+
+// ------------------------------------------------------------------- folders
+function refreshSave() { $('b-save').disabled = DEMO || !$('archive').value.trim(); }
+async function browse(boxId, input, start) {
+  const box = $(boxId), d = await api('/api/setup/browse?path=' + encodeURIComponent(start || ''));
+  box.hidden = false;
+  let html = '<div class="cur">' + esc(d.path || 'This computer') + (d.error ? ' - ' + esc(d.error) : '') + '</div>';
+  if (d.parent !== null && d.path) html += '<div class="item" data-p="' + esc(d.parent) + '">&#8593; up</div>';
+  else if (d.path) html += '<div class="item" data-p="">&#8593; all drives</div>';
+  (d.entries || []).forEach(e => { html += '<div class="item" data-p="' + esc(e.path) + '">' + esc(e.name) + '</div>'; });
+  if (d.path) html += '<div class="use"><button class="primary" data-use="' + esc(d.path) + '">Use this folder</button></div>';
+  box.innerHTML = html;
+  box.querySelectorAll('.item').forEach(el => el.onclick = () => browse(boxId, input, el.dataset.p));
+  const use = box.querySelector('[data-use]');
+  if (use) use.onclick = () => { $(input).value = use.dataset.use; box.hidden = true; refreshSave(); };
+}
+$('b-lib').onclick = () => browse('pick-lib', 'archive', $('archive').value.trim());
+$('b-q').onclick = () => browse('pick-q', 'queue', $('queue').value.trim());
+$('archive').oninput = refreshSave;
+function drawQueues() {
+  $('qlist').innerHTML = queues.map((p, i) => '<li><span style="flex:1">' + esc(p) + '</span><button data-i="' + i + '">Remove</button></li>').join('');
+  $('qlist').querySelectorAll('button').forEach(b => b.onclick = () => { queues.splice(+b.dataset.i, 1); drawQueues(); });
+}
+$('b-qadd').onclick = () => { const v = $('queue').value.trim(); if (v && !queues.includes(v)) { queues.push(v); drawQueues(); } $('queue').value = ''; };
+
+$('b-key').onclick = async () => {
+  const k = $('key').value.trim(), m = $('m-key');
+  m.className = 'msg'; m.textContent = 'Testing...';
+  const r = await api('/api/setup/test-tmdb', { key: k });
+  keyOk = !!r.ok; keyText = keyOk ? k : '';
+  say('m-key', r.ok, r.message);
+};
+
+$('b-dry').onclick = async () => {
+  const out = $('dry'); out.innerHTML = '<p class="small">Reading file names...</p>';
+  const r = await api('/api/setup/dry-run', { archive_root: $('archive').value.trim(), queue_roots: queues });
+  if (!r.ok) { out.innerHTML = '<p class="warn">' + esc(r.message || 'Could not check.') + '</p>'; return; }
+  let h = '';
+  (r.warnings || []).forEach(w => h += '<div class="warn">' + esc(w) + '</div>');
+  r.folders.forEach(f => {
+    h += '<h3 style="margin:14px 0 4px;font-size:15px">' + esc(f.path) + '</h3>';
+    if (!f.exists) return;
+    h += '<span class="stat"><b>' + f.videos.toLocaleString() + '</b> videos</span>' +
+         '<span class="stat"><b>' + f.shows.toLocaleString() + '</b> TV shows</span>' +
+         '<span class="stat"><b>' + f.movies.toLocaleString() + '</b> movies</span>' +
+         '<span class="stat"><b>' + (f.bytes / 1e9).toFixed(1) + '</b> GB</span>';
+    if (f.truncated) h += '<div class="small">Stopped early to stay quick: counts are a lower bound.</div>';
+    if (f.samples.length) h += '<table><tr><th>File</th><th>Would be</th></tr>' + f.samples.map(s => '<tr><td>' + esc(s.file) + '</td><td>' + esc(s.as) + '</td></tr>').join('') + '</table>';
+  });
+  h += '<p class="small">Tools: VLC ' + (r.tools.vlc ? 'found' : 'not found (optional, for playback)') + ', ffprobe ' + (r.tools.ffprobe ? 'found' : 'not found (optional, for runtimes)') + '.</p>';
+  out.innerHTML = h;
+};
+
+$('b-save').onclick = async () => {
+  const m = $('m-save'); m.className = 'msg'; m.textContent = 'Saving...';
+  const r = await api('/api/setup/save', { archive_root: $('archive').value.trim(), queue_roots: queues.map(p => ({ path: p })), tmdb_key: keyOk ? keyText : '' });
+  if (!r.ok) { say('m-save', false, r.message); return; }
+  say('m-save', true, 'Saved. Restarting - this page will reload when the app is back.');
+  await api('/api/setup/restart', {});
+  const t0 = Date.now();
+  const poll = setInterval(async () => {
+    try { const p = await fetch('/api/ping', { cache: 'no-store' }); if (p.ok && Date.now() - t0 > 2000) { clearInterval(poll); location.href = '/'; } } catch (e) {}
+    if (Date.now() - t0 > 60000) { clearInterval(poll); say('m-save', false, 'The app did not come back by itself. Start it again with: python run.py'); }
+  }, 1000);
+};
+
+(async () => {
+  if (CONFIGURED) { $('back').hidden = false; $('h1').textContent = 'Settings'; }
+  else { $('h1').textContent = 'Set up ' + DEFAULTS.title; $('sub').textContent = 'Pick your folders and add a TMDB key. Nothing is moved, renamed or deleted by this page.'; }
+  const s = await api('/api/setup/status');
+  if (s.archive_root) $('archive').value = s.archive_root;
+  queues = (s.queue_roots || []).map(q => q.path); drawQueues();
+  if (s.has_tmdb_key) { $('m-key').className = 'msg ok'; $('m-key').textContent = 'A key is already saved. Leave this blank to keep it.'; }
+  if (DEMO) { say('m-save', false, 'Demo mode is on, so folders are not saved here. Start without --demo to use your own library. (Appearance changes still work.)'); }
+  refreshSave();
+  fillAppearance(await api('/api/setup/appearance'));
+})();
+</script></body></html>

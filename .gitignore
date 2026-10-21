@@ -1,0 +1,25 @@
+__pycache__/
+*.pyc
+config.json
+data/
+demo_data/
+logs/
+generated/
+.venv/
+personal/
+config.json.tmp
+.claude/
+Pending Deletion/
+
+*.exe
+protocol_handler.log
+tests/personal_strings.local.txt
+.pytest_cache/
+extras/youtube/data/
+extras/youtube/data_dev/
+extras/youtube/logs/
+vortex.json
+site/
+.coverage*
+htmlcov/
+coverage.xml

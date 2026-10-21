@@ -1,0 +1,6 @@
+{
+  "app_name": "Living Room Library",
+  "tagline": "Everything we own, in one place",
+  "people": ["Alex", "Sam"],
+  "accent": { "light": "#2563EB", "dark": "#60A5FA" }
+}

@@ -1,0 +1,10 @@
+{
+  "poll_interval_sec": 3600,
+  "new_window_days": 14,
+  "catalog_retention_days": 21,
+  "shorts_max_sec": 60,
+  "failure_alert_threshold": 3,
+  "playlist_page_size": 15,
+  "open_browser_command": "",
+  "raise_browser_on_open": true
+}

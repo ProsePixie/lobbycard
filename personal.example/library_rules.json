@@ -1,0 +1,6 @@
+{
+  "_comment": "Hand-curated exceptions. Copy to <data dir>/library_rules.json.",
+  "movie_to_tv_merge": { "1923": [1920, 2.5] },
+  "completeness_excluded_tmdb_ids": { "121": "collected on purpose, never track gaps" },
+  "manual_covers": []
+}

@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en" class="@@remote_only_html_class@@">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="@@viewport_content@@">
+<title>@@app_name@@</title>
+<link rel="icon" type="image/png" href="@@favicon_uri@@">
+@@mobile_head@@
+<style>
+@@file:app.css@@</style>
+</head>
+<body>
+<div class="boot-overlay" id="boot-overlay" hidden>
+  <canvas class="boot-fx" id="boot-fx" aria-hidden="true"></canvas>
+  <div class="boot-overlay-stack">
+    <div class="boot-overlay-inner" id="boot-card">
+      <div class="boot-spin" id="boot-spin" aria-hidden="true"></div>
+      <div class="boot-step" id="boot-step"></div>
+      <h2 id="boot-title">Loading&hellip;</h2>
+      <p class="boot-detail" id="boot-detail">&nbsp;</p>
+      <p class="boot-what" id="boot-what"></p>
+      <p class="boot-stuck" id="boot-stuck" hidden>Taking longer than usual. <a id="boot-keep">Keep waiting</a> &middot; <a id="boot-hide">Hide this</a></p>
+      <div class="boot-hair"><i id="boot-hair-fill"></i></div>
+    </div>
+    <div class="boot-hint" id="boot-hint"></div>
+  </div>
+</div>
+<!-- Remote-only port's idle screen (see REMOTE_PORT in app/web_server.py) -
+     same wallpaper/card styling as the boot overlay above (.boot-overlay),
+     shown instead of a blank page whenever pollVlcState() finds nothing
+     playing and nothing resumable. Always in the markup (harmless, a few
+     hundred bytes) but only ever toggled by JS gated on REMOTE_ONLY - same
+     "same page, same script, everywhere" approach as the rest of this
+     feature, see that constant's own comment. -->
+<div class="boot-overlay" id="remote-idle" @@remote_idle_initial_hidden@@>
+  <div class="boot-overlay-stack">
+    <div class="boot-overlay-inner">
+      <h2>&#128250; Nothing&rsquo;s Playing</h2>
+      <div class="boot-hint" id="remote-idle-hint"></div>
+    </div>
+  </div>
+</div>
+<!-- Remote-only port's portrait prompt (2026-09-18) - shown/hidden purely
+     by the html.remote-only orientation media queries above, no JS
+     involved. Always in the markup, same reasoning as #remote-idle above -
+     harmless on the main page since html.remote-only is never present
+     there to match either media query rule. -->
+<!-- Remote-only port: shown when the phone cannot reach the app (Wi-Fi dropped, PC asleep,
+     server restarting) instead of silently freezing on the last screen. See noteRemoteLink(). -->
+<div class="boot-overlay" id="remote-offline" hidden>
+  <div class="boot-overlay-stack">
+    <div class="boot-overlay-inner">
+      <div class="ro-dot" aria-hidden="true"></div>
+      <h2>Can&rsquo;t reach @@app_name@@</h2>
+      <p>Trying again every few seconds.</p>
+      <p class="ro-more" id="remote-offline-more" hidden>Still nothing. Is the PC awake and on the same Wi-Fi?</p>
+    </div>
+  </div>
+</div>
+<div class="boot-overlay" id="remote-rotate-prompt" hidden>
+  <div class="boot-overlay-stack">
+    <div class="boot-overlay-inner">
+      <div class="rrp-icon"><span class="rrp-phone">&#128241;</span>&#8635;</div>
+      <h2>Turn Your Phone Sideways</h2>
+      <p>This remote only works in landscape - rotate your phone to use it.</p>
+    </div>
+  </div>
+</div>
+<script>
+  // Inline, right here, so it runs the instant this div exists - before the
+  // rest of the (possibly stale/half-cached) page below even finishes
+  // parsing. The full init block near the end of the page's own <script>
+  // does the actual polling/progress-bar updates; this just avoids a flash
+  // of the real content first.
+  (function () {
+    var running = (@@refresh_status_json@@).running, drawing = false;
+    try { drawing = sessionStorage.getItem('appDrawing') === '1'; } catch (e) {}
+    if (running || drawing) document.getElementById('boot-overlay').hidden = false;
+    if (drawing && !running) {
+      document.getElementById('boot-step').textContent = 'Almost there';
+      document.getElementById('boot-title').textContent = 'Drawing your library';
+      document.getElementById('boot-hair-fill').style.width = '100%';
+      setTimeout(function () { try { sessionStorage.removeItem('appDrawing'); } catch (e) {} document.getElementById('boot-overlay').hidden = true; }, 20000);
+    }
+  })();
+</script>
+<div class="wrap">
+@@notice_html@@
+  <div class="app-hero">
+    <button class="refresh-page-btn" type="button" onclick="location.reload()" title="Reload this page - just the browser tab, not a library rescan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16M3 21v-5h5"></path></svg>Refresh Page</button>
+    <div class="app-hero-inner">
+      <h1 class="app-title">@@app_name@@</h1>
+      <div class="app-tagline">@@app_tagline@@</div>
+    </div>
+    <header>
+    <div class="header-actions">
+      <button class="header-btn" id="top10-btn" type="button" onclick="openTop10View()" title="Watch List"><span class="icon-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M7 5v14M17 5v14M3 9h4M3 15h4M17 9h4M17 15h4"></path></svg></span></button>
+      <button class="header-btn" id="weekly-tv-toggle" type="button" title="Weekly TV — currently-airing shows with a real next-episode date, soonest first"><span class="icon-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M8 3v4M16 3v4M3 10h18"></path><path d="M16.5 14a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z"></path><path d="M16.5 15.3v1.4l1 .6"></path></svg></span></button>
+      <button class="header-btn" id="franchise-mode-toggle" type="button" @@franchise_hidden_attr@@ title="@@franchise_name@@ mode — only its titles, one What's Next panel instead of three"><span class="icon-chip"><img src="@@franchise_icon_uri@@" alt=""></span></button>
+      @@youtube_chip_html@@
+      <button class="header-btn" id="refresh-btn" type="button" title="Refresh library"><span class="icon-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16M3 21v-5h5"></path></svg></span></button>
+      <button class="header-btn" id="travel-mode-btn" type="button" onclick="openTravelPanel()" style="display:@@travel_panel_display@@;" title="Travel Mode — export a portable, offline copy of part of your library"><span class="icon-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="12" rx="2"></rect><path d="M8 8V6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 13h18"></path></svg></span></button>
+      <button class="header-btn" id="export-log-btn" type="button" onclick="exportTravelLog()" style="display:none" title="Save everything changed on this trip - watched marks, new files, pinned backdrops - to travel-changes.json">💾 Export Trip Changes</button>
+
+      <div class="hub-wrap" id="filemgmt-hub-wrap">
+        <button class="header-btn hub-trigger" id="filemgmt-hub-btn" type="button" onclick="toggleHubMenu('filemgmt')" title="File Management — Delete, File to Library, File Download Queue"><span class="icon-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg></span></button>
+        <div class="hub-menu" id="filemgmt-hub-menu">
+          <div class="hub-menu-title">File Management</div>
+          <button class="hub-menu-item" id="purge-btn" type="button" onclick="closeHubMenus();purgePendingDeletion()" title="Purge"><span class="icon-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"></path><path d="M10 11v6M14 11v6"></path></svg></span>Delete (Pending Deletion)</button>
+          <button class="hub-menu-item" id="autofile-btn" type="button" onclick="closeHubMenus();autofileQueue()" title="File to Library"><span class="icon-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 3 8v8l9 5 9-5V8z"></path><path d="M3 8l9 5 9-5M12 13v8"></path></svg></span>File to Library</button>
+          <button class="hub-menu-item" id="file-queue-btn" type="button" onclick="closeHubMenus();openFileQueue()" title="File download queue — pick what to move into Video\"><span class="icon-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15h4l1.5 3h7L18 15h3"></path><path d="M5 15V7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v8"></path><path d="M12 7v6M9.5 10.5 12 13l2.5-2.5"></path></svg></span>File Download Queue</button>
+        </div>
+      </div>
+
+      <div class="hub-wrap" id="admin-hub-wrap">
+        <button class="header-btn hub-trigger" id="admin-hub-btn" type="button" onclick="toggleHubMenu('admin')" title="Admin — Dashboard, Missing Episodes, Library History, Fix/Add a Title, Logs"><span class="icon-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82A1.65 1.65 0 0 0 3 13.09H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></span></button>
+        <div class="hub-menu" id="admin-hub-menu">
+          <div class="hub-menu-title">Admin</div>
+          <button class="hub-menu-item" id="dashboard-toggle" type="button" onclick="closeHubMenus();openDashboardPopup()" title="Library Dashboard"><span class="icon-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M12 20V4M20 20v-7"></path></svg></span>Library Dashboard</button>
+          <button class="hub-menu-item" id="missing-episodes-btn" type="button" onclick="closeHubMenus();openMissingEpisodesView()" title="Missing Episodes"><span class="icon-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h7"></path><circle cx="19" cy="17" r="3"></circle><path d="M19 15.5v1.5M19 18.5h.01"></path></svg></span>Missing Episodes</button>
+          <button class="hub-menu-item" id="library-history-btn" type="button" onclick="closeHubMenus();openLibraryHistoryView()" title="Library History — everything ever added or removed, and removed titles still tracked"><span class="icon-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v4h4"></path><path d="M12 7v5l3 2"></path></svg></span>Library History</button>
+          <a class="hub-menu-item" id="settings-btn" href="/setup" style="text-decoration:none;" title="Settings: your folders, TMDB key, the title, subtitle and header image"><span class="icon-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></span>Settings</a>
+          <button class="hub-menu-item" id="admin-btn" type="button" onclick="closeHubMenus();openAdminPanel()" title="Admin — fix a wrong match/poster, or add a title"><span class="icon-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path><path d="M9 13h6M9 17h6"></path></svg></span>Fix / Add a Title</button>
+          <button class="hub-menu-item" id="admin-logs-btn" type="button" onclick="closeHubMenus();openAdminLogs()" title="Refresh &amp; Server Log"><span class="icon-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5a2 2 0 0 1 2-2h8l6 6v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"></path><path d="M14 3v6h6M8 13h8M8 17h5"></path></svg></span>Logs</button>
+        </div>
+      </div>
+
+      <div class="hub-wrap" id="help-hub-wrap">
+        <button class="header-btn hub-trigger" id="help-hub-btn" type="button" onclick="toggleHubMenu('help')" title="Help — Help Guide, Field Guide"><span class="icon-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M9.5 9a2.5 2.5 0 0 1 4.6 1.4c0 1.6-2.1 1.9-2.1 3.4"></path><path d="M12 17.5h.01"></path></svg></span></button>
+        <div class="hub-menu" id="help-hub-menu">
+          <div class="hub-menu-title">Help</div>
+          <button class="hub-menu-item" id="help-btn" type="button" onclick="closeHubMenus();openHelpGuide()" title="Help — a quick in-app reference for every button and icon"><span class="icon-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M9.5 9a2.5 2.5 0 0 1 4.6 1.4c0 1.6-2.1 1.9-2.1 3.4"></path><path d="M12 17.5h.01"></path></svg></span>Help Guide</button>
+          <button class="hub-menu-item" id="guide-btn" type="button" @@guide_hidden_attr@@ onclick="closeHubMenus();openFieldGuide()" title="Field Guide — a longer illustrated walkthrough"><span class="icon-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4a2 2 0 0 1 2-2h6a3 3 0 0 1 2 .8A3 3 0 0 1 14 2h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6a2 2 0 0 0-2 2 2 2 0 0 0-2-2H4a2 2 0 0 1-2-2z"></path><path d="M12 3.5v17"></path></svg></span>Field Guide</button>
+        </div>
+      </div>
+    </div>
+    </header>
+  </div>
+
+  <div id="travel-first-run-banner" style="display:none; background:var(--chip-bg); border:1px solid var(--border); border-radius:var(--radius); padding:12px 16px; margin-bottom:14px; align-items:center; gap:12px; justify-content:space-between;">
+    <div style="font-size:13px;">👋 First time on this computer? Run <strong>Setup.cmd</strong> once (see <strong>START HERE.html</strong>) to enable Open Folder/Play links - browsing and watched marks already work either way.</div>
+    <button class="header-btn" type="button" onclick="dismissTravelFirstRunBanner()" style="flex:0 0 auto;">Got it</button>
+  </div>
+
+  <div class="front-panels" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:14px; margin-bottom:16px;">
+    <div class="panel" style="margin-bottom:0;">
+      <h2 style="display:flex; align-items:center; justify-content:space-between;">
+        <span><span class="icon-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M18.4 5.6l-2.8 2.8M8.4 15.6l-2.8 2.8"></path></svg></span>What's New</span>
+        <button type="button" class="star-btn panel-refresh-btn" title="Refresh this panel - pulls in anything new the server already knows about, and re-checks TMDB air dates" onclick="onPanelRefresh('wn', this)">↻</button>
+      </h2>
+      <div id="whats-new-body"></div>
+    </div>
+    <div class="panel" style="margin-bottom:0;">
+      <h2 style="display:flex; align-items:center; justify-content:space-between;">
+        <span><span class="icon-chip"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M8 5.5v13l11-6.5z"></path></svg></span>Continue Watching</span>
+        <button type="button" class="star-btn panel-refresh-btn" title="Refresh this panel - pulls in anything new the server already knows about, and re-checks TMDB air dates" onclick="onPanelRefresh('cw', this)">↻</button>
+      </h2>
+      <div id="continue-watching-body"></div>
+    </div>
+    <div class="panel" style="margin-bottom:0;">
+      <h2 style="display:flex; align-items:center; justify-content:space-between;">
+        <span><span class="icon-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 3"></path></svg></span>Recently Watched</span>
+        <span>
+          <button type="button" class="star-btn panel-refresh-btn" title="Refresh this panel - pulls in anything new the server already knows about, and re-checks TMDB air dates" onclick="onPanelRefresh('rw', this)">↻</button>
+          <button type="button" class="star-btn" id="clear-recently-watched-btn" style="font-size:calc(10.5px * var(--tv-scale));" title="Clear this list - doesn't touch any watched checkmarks, just this history" onclick="onClearRecentlyWatched()">Clear</button>
+        </span>
+      </h2>
+      <div id="recently-watched-body"></div>
+    </div>
+  </div>
+
+  <div class="panel franchise-whats-next-panel" id="franchise-whats-next-panel" style="display:none;">
+    <h2><span class="icon-chip" style="font-size:13px;">🧭</span>What's Next!</h2>
+    <div id="franchise-whats-next-body"></div>
+  </div>
+
+  <div class="modal-overlay" id="dashboard-overlay">
+    <div class="modal-box modal-box-roomy" id="dashboard-modal-box">
+      <div class="modal-header">
+        <button class="modal-close" onclick="closeDashboardPopup()">&times;</button>
+        <div class="title"><span class="icon-chip" style="width:26px; height:26px; border-radius:6px; background:var(--btn-dashboard-soft); display:inline-flex; align-items:center; justify-content:center; vertical-align:-7px; margin-right:4px;"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--btn-dashboard)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M12 20V4M20 20v-7"></path></svg></span>Library Dashboard</div>
+      </div>
+      <div class="entries" style="display:block; max-height:75vh; overflow-y:auto; padding:16px;">
+        <div class="stat-group-label">Library</div>
+        <div class="stats">
+          <div class="stat"><div class="n">@@total_shows_movies@@</div><div class="l">Total titles</div></div>
+          <div class="stat"><div class="n">@@total_tv@@</div><div class="l">TV Shows</div></div>
+          <div class="stat"><div class="n">@@total_movies@@</div><div class="l">Movies</div></div>
+          <div class="stat"><div class="n">@@total_episodes@@</div><div class="l">TV Episodes</div></div>
+          <div class="stat"><div class="n">@@total_folders@@</div><div class="l" title="Raw count of items found on disk">Files &amp; Folders</div></div>
+          <div class="stat"><div class="n">@@tmdb_matched_count@@/@@total_shows_movies@@</div><div class="l" title="Cross-referenced with TheMovieDB for posters, genres, air dates">Matched Online</div></div>
+          <div class="stat"><div class="n">@@total_size_label@@</div><div class="l">Total library size</div></div>
+        </div>
+
+        <div class="stat-group-label">Status</div>
+        <div class="stats">
+          <div class="stat"><div class="n">@@archived_count@@</div><div class="l">Archived</div></div>
+          <div class="stat"><div class="n">@@queue_count@@</div><div class="l">In queue</div></div>
+          <div class="stat stat-dup" id="wasted-space-stat"><div class="n">@@wasted_size_label@@</div><div class="l" title="Space you&#39;d get back by removing lower-quality duplicate copies">Wasted Space (Duplicates)</div>@@duplicates_export_btn@@</div>
+          <div class="stat stat-missing"><div class="n">@@incomplete_count@@</div><div class="l">Shows missing episodes</div></div>
+        </div>
+
+        <div class="stat-group-label">Action queue</div>
+        <div class="stats">
+          <div class="stat stat-purge"><div class="n">@@ready_to_delete_count@@</div><div class="l" title="Watched, delete-after-watching, not protected by an override - ready to purge to your Desktop">Ready to Purge</div></div>
+          <div class="stat stat-filelib"><div class="n">@@autofile_ready_count@@</div><div class="l" title="Watched, kept forever, still in the download queue, confidently identified - ready to rename and file into Video\">Ready to Auto-File</div></div>
+        </div>
+
+        <div class="panel">
+          <h2><span class="icon-chip" style="background:var(--btn-filelib-soft);"><svg viewBox="0 0 24 24" fill="none" stroke="var(--btn-filelib)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v10M8 10l4 4 4-4"></path><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"></path></svg></span>Ready to Auto-File (about to be archived)</h2>
+          <div class="panel-body">@@autofile_panel_html@@</div>
+        </div>
+
+        <div class="panel">
+          <h2><span class="icon-chip" style="background:var(--btn-purge-soft);"><svg viewBox="0 0 24 24" fill="none" stroke="var(--btn-purge)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="12" height="12" rx="2"></rect><path d="M9 9h11a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V10a1 1 0 0 1 1-1z"></path></svg></span>Ready to Purge</h2>
+          <div class="panel-body">@@retention_panel_html@@</div>
+        </div>
+
+        <div class="panel">
+          <h2><span class="icon-chip" style="background:var(--btn-purge-soft);"><svg viewBox="0 0 24 24" fill="none" stroke="var(--btn-purge)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="12" height="12" rx="2"></rect><path d="M9 9h11a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V10a1 1 0 0 1 1-1z"></path></svg></span>Duplicate quarantine candidates</h2>
+          <div class="panel-body">@@quarantine_panel_html@@</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="travel-overlay">
+    <div class="modal-box" id="travel-modal-box" style="max-width:min(640px, 92vw);">
+      <div class="modal-header">
+        <button class="modal-close" onclick="closeTravelPanel()">&times;</button>
+        <div class="title"><span class="icon-chip" style="width:26px; height:26px; border-radius:6px; background:var(--btn-travel-soft); display:inline-flex; align-items:center; justify-content:center; vertical-align:-7px; margin-right:4px;"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--btn-travel)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="12" rx="2"></rect><path d="M8 8V6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 13h18"></path></svg></span>Travel Mode</div>
+      </div>
+      <div class="entries" style="display:block; padding:16px;">
+        <p style="font-size:13px; color:var(--text-dim); margin:0 0 10px;">
+          Check the 🧳 box next to any episode/movie in the library (or use "Select whole show" from inside a
+          title's popup) to add it here. Nothing is copied until you generate and review the export script.
+        </p>
+        <p style="font-size:13px; margin:0 0 14px;">
+          <strong id="travel-count">0</strong> items selected, <strong id="travel-size">0 MB</strong> total.
+        </p>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+          <input id="travel-dest-input" type="text" readonly value="@@travel_last_destination@@" placeholder="Click Browse to choose a destination folder" style="flex:1 1 240px; padding:8px 10px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text);">
+          <button class="header-btn" type="button" onclick="browseTravelDest()">📁 Browse...</button>
+        </div>
+        <div style="margin-top:12px; font-size:13px;">
+          <label style="margin-right:14px; cursor:pointer;"><input type="radio" name="travel-mode-kind" value="personal" checked style="vertical-align:-2px; margin-right:4px;">Personal - your branding, baked in</label>
+          <label style="cursor:pointer;"><input type="radio" name="travel-mode-kind" value="shareable" style="vertical-align:-2px; margin-right:4px;">Shareable - generic branding, star ratings/not-interested flags left out, editable on the other end</label>
+        </div>
+        <div style="margin-top:12px;">
+          <button class="header-btn" id="travel-export-btn" type="button" onclick="prepareTravelExport()">🧳 Generate Export Script</button>
+        </div>
+        <div id="travel-import-section">
+          <hr style="border:none; border-top:1px solid var(--border); margin:18px 0;">
+          <p style="font-size:13px; color:var(--text-dim); margin:0 0 10px;">
+            Back from a trip? Point at the travel drive/export folder (the same one you exported to, e.g.
+            <code>F:\TravelMedia</code>) and import everything that changed in one shot - watched marks,
+            retention changes, new files found via Scan New Downloads, pinned banner images. Nothing here is
+            ever auto-deleted; a title flagged "delete after watching" out there is only reported, never
+            removed from your library automatically.
+          </p>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+            <input id="travel-import-source-input" type="text" readonly placeholder="Click Browse to choose the travel drive/export folder" style="flex:1 1 240px; padding:8px 10px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text);">
+            <button class="header-btn" type="button" onclick="browseTravelImportSource()">📁 Browse...</button>
+          </div>
+          <div style="margin-top:8px;">
+            <button class="header-btn" id="travel-import-btn" type="button" onclick="importTravelChanges()">📥 Import Trip Changes</button>
+          </div>
+          <div id="travel-import-result" style="margin-top:8px; font-size:12px; color:var(--text-dim); white-space:pre-wrap;"></div>
+        </div>
+        <div id="travel-scan-section">
+          <hr style="border:none; border-top:1px solid var(--border); margin:18px 0;">
+          <p style="font-size:13px; color:var(--text-dim); margin:0 0 10px;">
+            Picked up something new on this trip? Drop the video file(s) into the <code>New Downloads</code>
+            folder right here on this drive, then scan it - matched titles (live TMDB lookup, when you have a
+            signal) show up right in your library grid below as "🆕 New Download" so you can browse/watch them
+            like anything else. Nothing is imported into your home library until you bring this drive back and
+            load the saved manifest there.
+          </p>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+            <button class="header-btn" type="button" onclick="scanForNewTravelFiles()">📂 Scan New Downloads for Files</button>
+            <button class="header-btn" id="travel-save-manifest-btn" type="button" onclick="saveNewTravelFilesManifest()" style="display:none;">💾 Save Import Manifest</button>
+          </div>
+          <div id="travel-scan-result" style="margin-top:8px; font-size:12px; color:var(--text-dim);"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="controls-row controls-row-find">
+      <input id="search" type="text" placeholder="Search" autocomplete="off">
+      <div class="view-toggle">
+        <button id="view-list-btn" data-view="list">List</button>
+        <button id="view-grid-btn" class="active" data-view="grid">Grid</button>
+      </div>
+      <div class="type-chip active" data-type="all">All</div>
+      <div class="type-chip" data-type="TV">TV (@@total_tv@@)</div>
+      <div class="type-chip" data-type="Movie">Movies (@@total_movies@@)</div>
+    </div>
+    <div class="controls-row controls-row-sort">
+      <select id="genre-filter" title="@@genre_note@@"><option value="all">All genres</option></select>
+      <select id="date-filter">
+        <option value="all" selected>All time</option>
+        <option value="7d">Added: last 7 days</option>
+        <option value="30d">Added: last 30 days</option>
+        <option value="watched-7d">Watched: last 7 days</option>
+        <option value="watched-30d">Watched: last 30 days</option>
+      </select>
+      <select id="source-filter" title="Digital files vs. physical discs vs. followed streaming titles">
+        <option value="digital" selected>Digital only</option>
+        <option value="physical">Physical only</option>
+        <option value="both">Digital + Physical</option>
+        <option value="netflix">Netflix only</option>
+        <option value="prime">Prime Video only</option>
+      </select>
+      <select id="sort-by">
+        <option value="title-asc">Title A-Z</option>
+        <option value="title-desc">Title Z-A</option>
+        <option value="recent">Recently added (file date)</option>
+        <option value="release-desc">Recently released</option>
+        <option value="count-desc">Most Episodes / Copies</option>
+        <option value="size-desc">Largest first</option>
+        <option value="wasted-desc">Most reclaimable space</option>
+      </select>
+    </div>
+    <div class="controls-row controls-row-icons">
+      <button type="button" class="filter-toggle" id="franchise-only-filter" @@franchise_hidden_attr@@ title="Show only the @@franchise_name@@ titles"><img src="@@franchise_icon_uri@@" alt="@@franchise_name@@" style="width:32px; height:32px; object-fit:contain; display:block;"></button>
+      <button type="button" class="filter-toggle" id="runtime-mismatch-filter" title="Error — a movie whose real file duration doesn't match what TMDB reports for that title, probably the wrong match"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--btn-purge)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><line x1="5.5" y1="5.5" x2="18.5" y2="18.5"></line></svg></button>
+      <button type="button" class="filter-toggle" id="short-episodes-filter" title="Series only — TMDB's own per-episode runtime is under 30 minutes (sitcoms/half-hour shows, not hour-long dramas)"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l3 2"></path><path d="M9 2h6M12 2v3"></path></svg></button>
+      <button type="button" class="filter-toggle" id="only-partner-no-interest-filter" title="Show only what @@partner_name@@ marked not interested in"><span class="icon-with-badge">🙈<span class="badge-letter">@@partner_initial@@</span></span></button>
+      <button type="button" class="filter-toggle" id="only-you-no-interest-filter" title="Show only what @@you_name@@ marked not interested in"><span class="icon-with-badge">🙈<span class="badge-letter">@@you_initial@@</span></span></button>
+      <button type="button" class="star-btn" id="franchise-order-toggle-btn" style="display:none;" onclick="toggleFranchiseOrderGlobal()" title="Switches the order both the timeline badges and the What's Next panel use"></button>
+    </div>
+  </div>
+
+  <div class="legend" id="status-legend">
+    <span class="status-legend-item" data-status="unwatched" title="Click to filter"><span class="root-dot status-dot s-unwatched"></span></span>
+    <span class="status-legend-item" data-status="progress" title="Click to filter"><span class="root-dot status-dot s-progress"></span></span>
+    <span class="status-legend-item" data-status="active" title="Click to filter"><span class="root-dot status-dot s-active"></span></span>
+    <span class="status-legend-item" data-status="ended" title="Click to filter"><span class="root-dot status-dot s-ended"></span></span>
+    <span class="status-legend-item" data-status="watched" title="Click to filter"><span class="root-dot status-dot s-watched"></span></span>
+    <span class="status-legend-item" data-status="airing_soon" title="Click to filter"><span class="root-dot status-dot s-airing-soon"></span></span>
+  </div>
+
+  <div class="result-count" id="result-count"></div>
+  <div id="list" style="display:none"></div>
+  <div class="grid" id="grid"></div>
+  @@youtube_section_html@@
+  <div class="empty-state" id="empty-state" style="display:none">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>
+    <div class="h">Nothing matches those filters</div>
+    <div class="d">Try widening the genre or location, or clear the search.</div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal-box" id="modal-box"></div>
+</div>
+
+<div class="actor-popup-overlay" id="actor-popup-overlay" onclick="if(event.target===this)closeActorPopup()">
+  <div class="actor-popup" id="actor-popup"></div>
+</div>
+
+<div class="rec-hover-tip" id="rec-hover-tip"></div>
+
+<script id="media-data" type="application/json">@@data_json@@</script>
+<script>
+@@files:js/*.js@@</script>
+</body>
+</html>
