@@ -10,9 +10,8 @@ Windows, macOS and Linux.
 ![A 40-second tour: search, a title's detail view, watched marks, franchise mode, first-run setup](docs/demo.gif)
 
 <sub>The tour above is recorded by a script ([`tools/record_demo.py`](tools/record_demo.py)) from the demo library,
-so it can be re-made with one command. A full-quality version is [`docs/demo.mp4`](docs/demo.mp4). Once GitHub Pages
-is switched on, the [`pages` workflow](.github/workflows/pages.yml) also publishes a read-only copy of the demo
-you can browse without installing anything.</sub>
+so it can be re-made with one command. A full-quality version is [`docs/demo.mp4`](docs/demo.mp4). The [`pages` workflow](.github/workflows/pages.yml) publishes a read-only copy of the demo you can browse without
+installing anything: **https://prosepixie.github.io/lobbycard/**</sub>
 
 Showing it to someone? [`docs/DEMO.md`](docs/DEMO.md) is a five-minute script with the stories and the honest answers.
 
