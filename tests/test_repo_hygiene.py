@@ -13,7 +13,7 @@ import re
 import pytest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SKIP_DIRS = {"site", ".git", "__pycache__", "demo_data", "data", "logs", "personal", "generated", ".venv", ".pytest_cache", "Pending Deletion"}
+SKIP_DIRS = {"site", ".ruff_cache", ".mypy_cache", ".git", "__pycache__", "demo_data", "data", "logs", "personal", "generated", ".venv", ".pytest_cache", "Pending Deletion"}
 TEXT_EXT = {".py", ".js", ".css", ".json", ".md", ".txt", ".html", ".cs", ".ps1", ".yml", ".yaml", ".cfg", ".toml", ".bat", ".gitignore"}
 
 GENERIC = [
